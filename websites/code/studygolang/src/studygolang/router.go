@@ -12,9 +12,14 @@ import (
 	"controller/admin"
 	"filter"
 	"github.com/studygolang/mux"
+	"logger"
+	"wechat"
 )
 
 func initRouter() *mux.Router {
+	//xuzhiping add
+	logger.Debugln("xuzhiping test router in !")
+
 	// 登录校验过滤器
 	loginFilter := new(filter.LoginFilter)
 	loginFilterChain := mux.NewFilterChain(loginFilter)
@@ -72,6 +77,9 @@ func initRouter() *mux.Router {
 	router.HandleFunc("/message/send{json:(|.json)}", SendMessageHandler).AppendFilterChain(loginFilterChain)
 	router.HandleFunc("/message/{msgtype:(system|inbox|outbox)}", MessageHandler).AppendFilterChain(loginFilterChain)
 	router.HandleFunc("/message/delete.json", DeleteMessageHandler).AppendFilterChain(loginFilterChain)
+
+	//微信相关
+	router.HandleFunc("/wechat/{uri}", wechat.WechatTest2)
 
 	/////////////////// 异步请求 开始///////////////////////
 	// 某节点下其他帖子
