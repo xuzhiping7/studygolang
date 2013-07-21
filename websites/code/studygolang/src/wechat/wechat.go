@@ -29,7 +29,7 @@ func WechatTest2(rw http.ResponseWriter, req *http.Request) {
 		logger.Debugln(nonce)
 		logger.Debugln(echostr)
 
-		fmt.Fprint(rw, signature)
+		fmt.Fprint(rw, echostr)
 	} else {
 
 		fmt.Fprint(rw, `xuzhiping test`)
