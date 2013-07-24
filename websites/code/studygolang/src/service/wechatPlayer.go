@@ -16,8 +16,8 @@ func CreateWechatPlayer(openid string) bool {
 	player := model.NewWechatPlayer()
 
 	player.OpenId = openid
-	player.NickName = "葱烧烙饼"
-	player.UserName = "xuzhiping"
+	player.NickName = "EmptyNow"
+	player.UserName = "EmptyNow"
 	player.Exp = 0
 	player.Mobility = 0
 
@@ -26,6 +26,17 @@ func CreateWechatPlayer(openid string) bool {
 		return false
 	}
 	return true
+}
+
+//获取一个wechat玩家信息
+func GetWechatPlayer(openid string) (player *model.WechatPlayer) {
+	player = model.NewWechatPlayer()
+	err := player.Where("openid=" + openid).Find()
+	if err != nil {
+		logger.Errorln("player service GetWechatPlayer Error:", err)
+		return
+	}
+	return player
 }
 
 // 判断该OpenID是否已经被注册了

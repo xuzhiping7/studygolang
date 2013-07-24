@@ -2,6 +2,7 @@ package model
 
 import (
 	"logger"
+	"strconv"
 	"util"
 )
 
@@ -24,6 +25,7 @@ type WechatPlayer struct {
 	Stamina        int    `json:"stamina"`
 	Agility        int    `json:"agility"`
 	NoDistribution int    `json:"no_distribution"`
+	Flag           int    `json:"flag"`
 
 	/*
 		数据库访问对象
@@ -53,11 +55,24 @@ func (this *WechatPlayer) Insert() (int, error) {
 	return int(id), err
 }
 
-func (this *WechatPlayer) UpdateNickName() error {
-	this.prepareUpdateNickName()
-	//logger.Debugln(this)
-	err := this.Dao.Update()
+//func (this *WechatPlayer) UpdateNickName(openid string) error {
 
+//	this.columns = []string{"nickname"}
+//	this.colValues = []interface{}{this.NickName}
+
+//	//logger.Debugln(this)
+//	err := this.Dao.Update().where("openid=" + openid)
+
+//	return err
+//}
+
+func (this *WechatPlayer) UpdateFlag() error {
+	err := this.Set("flag=" + strconv.Itoa(this.Flag)).Where("openid=" + this.OpenId).Update()
+	return err
+}
+
+func (this *WechatPlayer) UpdateNickName() error {
+	err := this.Set("nickname=" + this.NickName).Where("openid=" + this.OpenId).Update()
 	return err
 }
 
@@ -118,11 +133,6 @@ func (this *WechatPlayer) prepareInsertData() {
 	this.colValues = []interface{}{this.OpenId, this.UserName, this.NickName, this.Exp, this.Mobility}
 }
 
-func (this *WechatPlayer) prepareUpdateNickName() {
-	this.columns = []string{"nickname"}
-	this.colValues = []interface{}{this.NickName}
-}
-
 func (this *WechatPlayer) colFieldMap() map[string]interface{} {
 	return map[string]interface{}{
 		"id":       &this.Id,
@@ -131,5 +141,6 @@ func (this *WechatPlayer) colFieldMap() map[string]interface{} {
 		"nickname": &this.NickName,
 		"exp":      &this.Exp,
 		"mobility": &this.Mobility,
+		"flag":     &this.Flag,
 	}
 }

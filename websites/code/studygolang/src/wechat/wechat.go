@@ -40,20 +40,24 @@ func init() {
 	textTemplate[1] = "您已经注册过，请输出‘我’查看您的最新状态。"
 	textTemplate[2] = "注册"
 	textTemplate[3] = "欢迎来到微信奇幻网游《传说》，请输出'注册'，确认注册游戏。"
+	textTemplate[4] = "创建角色中,请输入您的角色名。(例如‘一叶之秋’，8个汉字内。)"
+	textTemplate[5] = "角色【%s】成功创建！请输入'传说'两字开始游戏。"
+	textTemplate[100] = "网络错误，请重新输入。"
 }
 
 //微信通道总入口
 func WechatEntrance(rw http.ResponseWriter, req *http.Request) {
 
-	bytes, _ := ioutil.ReadAll(req.Body)
-
 	v := textRecieveMessage{}
 
+	bytes, _ := ioutil.ReadAll(req.Body)
 	err := xml.Unmarshal(bytes, &v)
 	if err != nil {
 		logger.Errorln(err)
 		return
 	}
+	//v.FromUserName = "xuzhipingtest"
+	//v.Content = "超帅的烧饼2"
 
 	responXML := textResponseMessage{}
 	responXML.FromUserName = v.ToUserName
@@ -63,7 +67,10 @@ func WechatEntrance(rw http.ResponseWriter, req *http.Request) {
 	responXML.MsgType = v.MsgType
 	responXML.FuncFlag = "0"
 
-	//假设不存在当前用户
+	/*
+		假设不存在当前用户,让玩家进入注册流程
+		存在当前用户，则读取当前用户的所有信息。
+	*/
 	if !service.OpenidExists(v.FromUserName) {
 
 		//假设当前用户输入的不是注册
@@ -78,7 +85,39 @@ func WechatEntrance(rw http.ResponseWriter, req *http.Request) {
 		}
 
 	} else {
-		responXML.Content = textTemplate[1]
+		player := service.GetWechatPlayer(v.FromUserName)
+		logger.Debugln(player)
+		if player.Flag == 0 {
+			responXML.Content = textTemplate[4]
+			player.Flag = 1
+
+			if err := player.UpdateFlag(); err != nil {
+				logger.Errorln("wechat UpdateFlag Error:", err)
+				responXML.Content = textTemplate[100]
+			}
+		} else if player.Flag == 1 {
+			player.Flag = 2
+			runes := []rune(v.Content)
+			if len(runes) > 8 {
+				responXML.Content = textTemplate[4]
+			} else {
+				player.NickName = v.Content
+				responXML.Content = fmt.Sprintf(textTemplate[5], v.Content)
+
+				if err := player.UpdateNickName(); err != nil {
+					logger.Errorln("wechat UpdateFlag Error:", err)
+					responXML.Content = textTemplate[100]
+				}
+
+				if err := player.UpdateFlag(); err != nil {
+					logger.Errorln("wechat UpdateFlag Error:", err)
+					responXML.Content = textTemplate[100]
+				}
+			}
+
+		} else {
+			responXML.Content = textTemplate[1]
+		}
 	}
 
 	result, _ := xml.Marshal(responXML)
@@ -86,6 +125,7 @@ func WechatEntrance(rw http.ResponseWriter, req *http.Request) {
 	fmt.Fprint(rw, string(result))
 }
 
+//开发者认证返回值
 func WechatDevelopVerify(rw http.ResponseWriter, req *http.Request) {
 	//验证开发者服务器，暂时发个假数据过去吧。构造那个算法有点麻烦。
 	if req.Form["signature"] != nil {

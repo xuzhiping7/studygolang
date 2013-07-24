@@ -12,13 +12,11 @@ import (
 	"controller/admin"
 	"filter"
 	"github.com/studygolang/mux"
-	"logger"
+	//"logger"
 	"wechat"
 )
 
 func initRouter() *mux.Router {
-	//xuzhiping add
-	logger.Debugln("xuzhiping test router in !")
 
 	// 登录校验过滤器
 	loginFilter := new(filter.LoginFilter)
