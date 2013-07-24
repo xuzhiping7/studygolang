@@ -40,3 +40,7 @@ func OpenidExists(openid string) bool {
 	}
 	return false
 }
+
+//func UpdateNickName(openid string, name string) bool {
+
+//}

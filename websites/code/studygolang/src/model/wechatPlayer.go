@@ -7,15 +7,33 @@ import (
 
 // 帖子信息
 type WechatPlayer struct {
-	Id       int    `json:"id"`
-	OpenId   string `json:"openid"`
-	NickName string `json:"nickname"`
-	UserName string `json:"username"`
-	Exp      int    `json:"exp"`
-	Mobility int    `json:"mobility"`
+	/*
+		数据表中储存的数据
+	*/
+	Id             int    `json:"id"`
+	OpenId         string `json:"openid"`
+	NickName       string `json:"nickname"`
+	UserName       string `json:"username"`
+	Sex            int    `json:"sex"`
+	Level          int    `json:"level"`
+	Exp            int    `json:"exp"`
+	Mobility       int    `json:"mobility"`
+	Reputation     int    `json:"reputation"`
+	Attack         int    `json:"attack"`
+	Defense        int    `json:"defense"`
+	Stamina        int    `json:"stamina"`
+	Agility        int    `json:"agility"`
+	NoDistribution int    `json:"no_distribution"`
 
-	// 数据库访问对象
+	/*
+		数据库访问对象
+	*/
 	*Dao
+
+	/*
+		扩展的动态数据
+	*/
+
 }
 
 func NewWechatPlayer() *WechatPlayer {
@@ -26,13 +44,21 @@ func NewWechatPlayer() *WechatPlayer {
 
 func (this *WechatPlayer) Insert() (int, error) {
 	this.prepareInsertData()
-	logger.Debugln(this)
+	//logger.Debugln(this)
 	result, err := this.Dao.Insert()
 	if err != nil {
 		return 0, err
 	}
 	id, err := result.LastInsertId()
 	return int(id), err
+}
+
+func (this *WechatPlayer) UpdateNickName() error {
+	this.prepareUpdateNickName()
+	//logger.Debugln(this)
+	err := this.Dao.Update()
+
+	return err
 }
 
 func (this *WechatPlayer) Find(selectCol ...string) error {
@@ -88,10 +114,13 @@ func (this *WechatPlayer) Order(order string) *WechatPlayer {
 }
 
 func (this *WechatPlayer) prepareInsertData() {
-
 	this.columns = []string{"openid", "username", "nickname", "exp", "mobility"}
 	this.colValues = []interface{}{this.OpenId, this.UserName, this.NickName, this.Exp, this.Mobility}
+}
 
+func (this *WechatPlayer) prepareUpdateNickName() {
+	this.columns = []string{"nickname"}
+	this.colValues = []interface{}{this.NickName}
 }
 
 func (this *WechatPlayer) colFieldMap() map[string]interface{} {
