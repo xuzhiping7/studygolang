@@ -29,23 +29,6 @@ type textResponseMessage struct {
 	FuncFlag     string
 }
 
-//储存所有对话模板
-/*
-var textTemplate map[int]string
-
-func init() {
-	//初始化所有对话模板
-	textTemplate = make(map[int]string)
-
-	textTemplate[0] = "注册成功!\n\n感谢注册微信奇幻网游《传说》，希望您能够享受和喜欢这个世界。\n\n（请输出‘传说’两个字，开启您的游戏旅程！）"
-	textTemplate[1] = "您已经注册过，请输出‘我’查看您的最新状态。"
-	textTemplate[2] = "注册"
-	textTemplate[3] = "欢迎来到微信奇幻网游《传说》，请输出'注册'，确认注册游戏。"
-	textTemplate[4] = "创建角色中,请输入您的角色名。(例如‘一叶之秋’，8个汉字内。)"
-	textTemplate[5] = "角色【%s】成功创建！请输入'传说'两字开始游戏。"
-	textTemplate[100] = "网络错误，请重新输入。"
-}
-*/
 //微信通道总入口
 func WechatEntrance(rw http.ResponseWriter, req *http.Request) {
 
@@ -58,7 +41,7 @@ func WechatEntrance(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	//v.FromUserName = "xuzhipingtest"
-	//v.Content = "超帅的烧饼2"
+	//v.Content = "前往林风南海岸"
 
 	responXML := textResponseMessage{}
 	responXML.FromUserName = v.ToUserName

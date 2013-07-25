@@ -25,6 +25,7 @@ type WechatPlayer struct {
 	Stamina        int    `json:"stamina"`
 	Agility        int    `json:"agility"`
 	NoDistribution int    `json:"no_distribution"`
+	Location       int    `json:"location"`
 	Flag           int    `json:"flag"`
 
 	/*
@@ -73,6 +74,11 @@ func (this *WechatPlayer) UpdateFlag() error {
 
 func (this *WechatPlayer) UpdateNickName() error {
 	err := this.Set("nickname=" + this.NickName).Where("openid=" + this.OpenId).Update()
+	return err
+}
+
+func (this *WechatPlayer) UpdateLocation() error {
+	err := this.Set("location=" + strconv.Itoa(this.Location)).Where("openid=" + this.OpenId).Update()
 	return err
 }
 
@@ -135,12 +141,20 @@ func (this *WechatPlayer) prepareInsertData() {
 
 func (this *WechatPlayer) colFieldMap() map[string]interface{} {
 	return map[string]interface{}{
-		"id":       &this.Id,
-		"openid":   &this.OpenId,
-		"username": &this.UserName,
-		"nickname": &this.NickName,
-		"exp":      &this.Exp,
-		"mobility": &this.Mobility,
-		"flag":     &this.Flag,
+		"id":              &this.Id,
+		"openid":          &this.OpenId,
+		"username":        &this.UserName,
+		"nickname":        &this.NickName,
+		"exp":             &this.Exp,
+		"sex":             &this.Sex,
+		"mobility":        &this.Mobility,
+		"location":        &this.Location,
+		"flag":            &this.Flag,
+		"level":           &this.Level,
+		"attack":          &this.Attack,
+		"defense":         &this.Defense,
+		"stamina":         &this.Stamina,
+		"agility":         &this.Agility,
+		"no_distribution": &this.NoDistribution,
 	}
 }

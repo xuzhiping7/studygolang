@@ -53,7 +53,7 @@ func (this *Role) FindAll(selectCol ...string) ([]*Role, error) {
 	}
 	// TODO:
 	roleList := make([]*Role, 0, 10)
-	logger.Debugln("selectCol", selectCol)
+	//logger.Debugln("selectCol", selectCol)
 	colNum := len(selectCol)
 	for rows.Next() {
 		role := NewRole()

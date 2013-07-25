@@ -255,7 +255,7 @@ func (this *TopicNode) FindAll(selectCol ...string) ([]*TopicNode, error) {
 	}
 	// TODO:
 	nodeList := make([]*TopicNode, 0, 10)
-	logger.Debugln("selectCol", selectCol)
+	//logger.Debugln("selectCol", selectCol)
 	colNum := len(selectCol)
 	for rows.Next() {
 		node := NewTopicNode()

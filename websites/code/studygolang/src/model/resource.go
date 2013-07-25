@@ -239,7 +239,7 @@ func (this *ResourceCat) FindAll(selectCol ...string) ([]*ResourceCat, error) {
 	}
 	// TODO:
 	catList := make([]*ResourceCat, 0, 10)
-	logger.Debugln("selectCol", selectCol)
+	//logger.Debugln("selectCol", selectCol)
 	colNum := len(selectCol)
 	for rows.Next() {
 		category := NewResourceCat()
