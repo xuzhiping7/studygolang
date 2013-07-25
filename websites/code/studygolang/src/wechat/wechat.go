@@ -30,6 +30,7 @@ type textResponseMessage struct {
 }
 
 //储存所有对话模板
+/*
 var textTemplate map[int]string
 
 func init() {
@@ -44,7 +45,7 @@ func init() {
 	textTemplate[5] = "角色【%s】成功创建！请输入'传说'两字开始游戏。"
 	textTemplate[100] = "网络错误，请重新输入。"
 }
-
+*/
 //微信通道总入口
 func WechatEntrance(rw http.ResponseWriter, req *http.Request) {
 
@@ -62,64 +63,10 @@ func WechatEntrance(rw http.ResponseWriter, req *http.Request) {
 	responXML := textResponseMessage{}
 	responXML.FromUserName = v.ToUserName
 	responXML.ToUserName = v.FromUserName
-	responXML.Content = v.Content
+	responXML.Content = service.WechatResponseHandle(v.ToUserName, v.Content)
 	responXML.CreateTime = v.CreateTime
 	responXML.MsgType = v.MsgType
 	responXML.FuncFlag = "0"
-
-	/*
-		假设不存在当前用户,让玩家进入注册流程
-		存在当前用户，则读取当前用户的所有信息。
-	*/
-	if !service.OpenidExists(v.FromUserName) {
-
-		//假设当前用户输入的不是注册
-		if v.Content == textTemplate[2] {
-			b_Reg := service.CreateWechatPlayer(v.FromUserName)
-
-			if b_Reg {
-				responXML.Content = textTemplate[0]
-			}
-		} else {
-			responXML.Content = textTemplate[3]
-		}
-
-	} else {
-		player := service.GetWechatPlayer(v.FromUserName)
-		logger.Debugln(player)
-		if player.Flag == 0 {
-			responXML.Content = textTemplate[4]
-			player.Flag = 1
-
-			if err := player.UpdateFlag(); err != nil {
-				logger.Errorln("wechat UpdateFlag Error:", err)
-				responXML.Content = textTemplate[100]
-			}
-		} else if player.Flag == 1 {
-			player.Flag = 2
-			runes := []rune(v.Content)
-			if len(runes) > 8 {
-				responXML.Content = textTemplate[4]
-			} else {
-				player.NickName = v.Content
-				responXML.Content = fmt.Sprintf(textTemplate[5], v.Content)
-
-				if err := player.UpdateNickName(); err != nil {
-					logger.Errorln("wechat UpdateFlag Error:", err)
-					responXML.Content = textTemplate[100]
-				}
-
-				if err := player.UpdateFlag(); err != nil {
-					logger.Errorln("wechat UpdateFlag Error:", err)
-					responXML.Content = textTemplate[100]
-				}
-			}
-
-		} else {
-			responXML.Content = textTemplate[1]
-		}
-	}
-
 	result, _ := xml.Marshal(responXML)
 
 	fmt.Fprint(rw, string(result))
