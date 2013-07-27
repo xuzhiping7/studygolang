@@ -41,12 +41,12 @@ func WechatEntrance(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	//v.FromUserName = "xuzhipingtest"
-	//v.Content = "前往林风南海岸"
+	//v.Content = "前往"
 
 	responXML := textResponseMessage{}
 	responXML.FromUserName = v.ToUserName
 	responXML.ToUserName = v.FromUserName
-	responXML.Content = service.WechatResponseHandle(v.ToUserName, v.Content)
+	responXML.Content = service.WechatResponseHandle(v.FromUserName, v.Content)
 	responXML.CreateTime = v.CreateTime
 	responXML.MsgType = v.MsgType
 	responXML.FuncFlag = "0"

@@ -7,14 +7,17 @@
 package service
 
 import (
+	"config"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"logger"
 	"model"
 	"strings"
 )
 
 //储存所有对话模板
-var textTemplate map[int]string
+var textTemplate map[string]string
 
 //储存所有命令前缀
 var commandPrefix map[int]string
@@ -31,18 +34,17 @@ const (
 
 func init() {
 	//初始化所有对话模板
-	textTemplate = make(map[int]string)
+	textTemplate = make(map[string]string)
 
-	textTemplate[0] = "注册成功!\n\n感谢注册微信奇幻网游《传说》，目前游戏处于删档测试阶段，有什么问题和建议请联系邮箱xuzhiping7@qq.com，希望您能够享受和喜欢这个世界。\n\n（请输出‘传说’两个字，开启您的游戏旅程！）"
-	textTemplate[1] = "您已经注册过，请输出‘我’查看您的最新状态。"
-	textTemplate[2] = "注册"
-	textTemplate[3] = "欢迎来到微信奇幻网游《传说》，请输出'注册'，确认注册游戏。"
-	textTemplate[4] = "创建角色中,请输入您的角色名。(例如‘一叶之秋’，8个汉字内。)"
-	textTemplate[5] = "角色【%s】成功创建！请输入'传说'两字开始游戏。"
-	textTemplate[6] = "%s\n当前地点:%s\n\n等级:%d\n职业:%s\n称号:%s\n状态：%s\n\n行动力:%d\n声望:%d\n\n生命:%s\n负重:%s\n抗性:%s\n\n攻击:%d\n防御:%d\n体力:%d\n敏捷:%d\n剩余分配点数:%d\n\n(您可以输入'当前'查看你所能做的事情)"
-	textTemplate[7] = "抱歉，你不能到达这个地方。"
-	textTemplate[8] = "你到达了%s"
-	textTemplate[100] = "网络错误，请重新输入。"
+	date, err := ioutil.ReadFile(config.ROOT + "/conf/wechatTextTemplate.json")
+
+	if err != nil {
+		logger.Errorln("Read wechatTextTemplate.json fail error:", err)
+	}
+
+	if err2 := json.Unmarshal(date, &textTemplate); err2 != nil {
+		logger.Errorln("Unmarshal wechatTextTemplate.json fail error:", err2)
+	}
 
 	commandPrefix = make(map[int]string)
 	commandPrefix[0] = "我"
@@ -51,10 +53,11 @@ func init() {
 	commandPrefix[3] = "修炼"
 	commandPrefix[4] = "状态"
 	commandPrefix[5] = "搜寻"
+	commandPrefix[6] = "帮助"
 
 	map_MapName = make(map[int]string)
-	map_MapName[0] = "林风阁酒馆"
-	map_MapName[1] = "林风村"
+	map_MapName[0] = "林风角酒馆"
+	map_MapName[1] = "林风角"
 	map_MapName[2] = "林风南海岸"
 }
 
@@ -109,14 +112,14 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 	if !OpenidExists(openid) {
 
 		//假设当前用户输入的不是注册
-		if content == textTemplate[2] {
+		if content == textTemplate["2"] {
 			b_Reg := CreateWechatPlayer(openid)
 
 			if b_Reg {
-				s_ReturnContent = textTemplate[0]
+				s_ReturnContent = textTemplate["0"]
 			}
 		} else {
-			s_ReturnContent = textTemplate[3]
+			s_ReturnContent = textTemplate["3"]
 		}
 
 	} else {
@@ -125,64 +128,76 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 
 		switch player.Flag {
 		case flag_注册完成:
-			s_ReturnContent = textTemplate[4]
+			s_ReturnContent = textTemplate["4"]
 			player.Flag = flag_用户传入角色名申请更名操作
 			if err := player.UpdateFlag(); err != nil {
 				logger.Errorln("wechat UpdateFlag Error:", err)
-				s_ReturnContent = textTemplate[100]
+				s_ReturnContent = textTemplate["100"]
 			}
 		case flag_用户传入角色名申请更名操作:
 			player.Flag = flag_用户传入角色名申请更名操作
 			runes := []rune(content)
 			if len(runes) > 8 {
-				s_ReturnContent = textTemplate[4]
+				s_ReturnContent = textTemplate["4"]
 			} else {
 				player.NickName = content
-				s_ReturnContent = fmt.Sprintf(textTemplate[5], content)
+				s_ReturnContent = fmt.Sprintf(textTemplate["5"], content)
 				player.Flag = flag_暂无
 				if err := player.UpdateNickName(); err != nil {
 					logger.Errorln("wechat UpdateFlag Error:", err)
-					s_ReturnContent = textTemplate[100]
+					s_ReturnContent = textTemplate["100"]
 				}
 
 				if err := player.UpdateFlag(); err != nil {
 					logger.Errorln("wechat UpdateFlag Error:", err)
-					s_ReturnContent = textTemplate[100]
+					s_ReturnContent = textTemplate["100"]
 				}
 			}
 		default:
 			switch {
 			case strings.HasPrefix(content, commandPrefix[0]):
-				s_ReturnContent = fmt.Sprintf(textTemplate[6], player.NickName, map_MapName[player.Location], player.Level, "吟游诗人", "三寸黄金", "无", player.Mobility, player.Reputation, "453/656", "56/100", "25", player.Attack, player.Defense, player.Stamina, player.Agility, player.NoDistribution)
+				s_ReturnContent = fmt.Sprintf(textTemplate["6"], player.NickName, map_MapName[player.Location], player.Level, "吟游诗人", "三寸黄金", "无", player.Mobility, player.Reputation, "453/656", "56/100", "25", player.Attack, player.Defense, player.Stamina, player.Agility, player.NoDistribution)
 				logger.Debugln(s_ReturnContent)
 			case strings.HasPrefix(content, commandPrefix[1]):
 
 			case strings.HasPrefix(content, commandPrefix[2]):
 				str_AimMap := strings.TrimPrefix(content, commandPrefix[2])
 
+				b_Match := false
+
+				//匹配玩家所在地
 				for k, v := range map_MapName {
 					if str_AimMap == v {
-
+						b_Match = true
 						player.Location = k
 
-						s_ReturnContent = fmt.Sprintf(textTemplate[8], v)
+						s_ReturnContent = fmt.Sprintf(textTemplate["8"], v)
 
 						if err := player.UpdateLocation(); err != nil {
 							logger.Errorln("service wechat UpdateLocation Error:", err)
-							s_ReturnContent = textTemplate[100]
+							s_ReturnContent = textTemplate["100"]
 						}
 
 						break
-					} else {
-						s_ReturnContent = textTemplate[7]
 					}
 					//fmt.Printf("%s -> %s\n", k, v)
 				}
 
+				//如果没有匹配到地点，则输出当前玩家可以前往的地点
+				if !b_Match {
+					s_ReturnContent += textTemplate["10"]
+					for _, v := range map_MapName {
+						s_ReturnContent += fmt.Sprintf(textTemplate["9"], v)
+					}
+				}
+				logger.Debugln(s_ReturnContent)
+
 			case strings.HasPrefix(content, commandPrefix[3]):
 
+			case strings.HasPrefix(content, commandPrefix[6]):
+				s_ReturnContent = textTemplate["11"]
 			default:
-				s_ReturnContent = textTemplate[1]
+				s_ReturnContent = textTemplate["1"]
 			}
 
 		}
