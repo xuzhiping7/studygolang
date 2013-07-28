@@ -3,6 +3,7 @@ package wechat
 import (
 	"fmt"
 	//"github.com/studygolang/mux"
+
 	"encoding/xml"
 	"io/ioutil"
 	"logger"
@@ -41,7 +42,7 @@ func WechatEntrance(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	//v.FromUserName = "xuzhipingtest"
-	//v.Content = "前往"
+	//v.Content = "传说"
 
 	responXML := textResponseMessage{}
 	responXML.FromUserName = v.ToUserName

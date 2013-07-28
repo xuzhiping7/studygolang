@@ -36,7 +36,12 @@ type WechatPlayer struct {
 	/*
 		扩展的动态数据
 	*/
-
+	//当前HP值
+	Cur_HP int
+	//当前行动力
+	Cur_Mobility int
+	//当前抗性
+	Cur_Resistance int
 }
 
 func NewWechatPlayer() *WechatPlayer {
