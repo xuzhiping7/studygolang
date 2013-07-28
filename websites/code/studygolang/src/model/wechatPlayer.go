@@ -72,18 +72,33 @@ func (this *WechatPlayer) Insert() (int, error) {
 //	return err
 //}
 
+//更新用户当前事件节点
 func (this *WechatPlayer) UpdateFlag() error {
 	err := this.Set("flag=" + strconv.Itoa(this.Flag)).Where("openid=" + this.OpenId).Update()
 	return err
 }
 
+//更新用户昵称
 func (this *WechatPlayer) UpdateNickName() error {
 	err := this.Set("nickname=" + this.NickName).Where("openid=" + this.OpenId).Update()
 	return err
 }
 
+//更新地名
 func (this *WechatPlayer) UpdateLocation() error {
 	err := this.Set("location=" + strconv.Itoa(this.Location)).Where("openid=" + this.OpenId).Update()
+	return err
+}
+
+//更新经验值
+func (this *WechatPlayer) UpdateExp() error {
+	err := this.Set("exp=" + strconv.Itoa(this.Exp)).Where("openid=" + this.OpenId).Update()
+	return err
+}
+
+//更新等级
+func (this *WechatPlayer) UpdateLevel() error {
+	err := this.Set("level=" + strconv.Itoa(this.Level)).Where("openid=" + this.OpenId).Update()
 	return err
 }
 

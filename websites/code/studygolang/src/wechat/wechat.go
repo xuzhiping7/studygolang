@@ -42,7 +42,7 @@ func WechatEntrance(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	//v.FromUserName = "xuzhipingtest"
-	//v.Content = "传说"
+	//v.Content = "修炼"
 
 	responXML := textResponseMessage{}
 	responXML.FromUserName = v.ToUserName

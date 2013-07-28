@@ -13,6 +13,7 @@ import (
 	"fmt"
 	//"io/ioutil"
 	"logger"
+	"math/rand"
 	"model"
 	"strings"
 )
@@ -150,7 +151,7 @@ func OpenidExists(openid string) bool {
 }
 
 func WechatResponseHandle(openid string, content string) (s_ReturnContent string) {
-	logger.Debugln("test In")
+
 	/*
 		假设不存在当前用户,让玩家进入注册流程
 		存在当前用户，则读取当前用户的所有信息。
@@ -210,7 +211,7 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 	default:
 		switch {
 		case strings.HasPrefix(content, commandPrefix[0]):
-			s_ReturnContent = fmt.Sprintf(textTemplate["6"], player.NickName, map_MapName[player.Location], player.Level, "吟游诗人", "三寸黄金", "无", player.Mobility, player.Reputation, "453/656", "56/100", "25", player.Attack, player.Defense, player.Stamina, player.Agility, player.NoDistribution)
+			s_ReturnContent = fmt.Sprintf(textTemplate["6"], player.NickName, map_MapName[player.Location], player.Level, player.Exp, 100, "吟游诗人", "三寸黄金", "无", player.Mobility, player.Reputation, "453/656", "56/100", "25", player.Attack, player.Defense, player.Stamina, player.Agility, player.NoDistribution)
 			logger.Debugln(s_ReturnContent)
 		case strings.HasPrefix(content, commandPrefix[1]):
 
@@ -248,7 +249,7 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 
 		//修炼
 		case strings.HasPrefix(content, commandPrefix[3]):
-
+			s_ReturnContent = PlayerPratctice(player)
 		case strings.HasPrefix(content, commandPrefix[6]):
 			s_ReturnContent = textTemplate["11"]
 		//传说
@@ -263,6 +264,25 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 	return s_ReturnContent
 }
 
-//func UpdateNickName(openid string, name string) bool {
+func PlayerPratctice(player *model.WechatPlayer) (s string) {
+	if rand.Intn(100) > 50 {
+		s = fmt.Sprintf(textTemplate["800000"], map_MapName[player.Location], "风铃怪", 10, "风信子", 2)
+		player.Exp += 10
+	} else {
+		s = fmt.Sprintf(textTemplate["800000"], map_MapName[player.Location], "泥巴怪", 5, "粘土", 2)
+		player.Exp += 5
+	}
 
-//}
+	//假设升级就减少经验
+	if player.Exp > 100 {
+		player.Exp -= 100
+		player.Level++
+		player.UpdateLevel()
+
+		s = s + "\n" + textTemplate["800001"]
+
+	}
+	player.UpdateExp()
+
+	return s
+}
