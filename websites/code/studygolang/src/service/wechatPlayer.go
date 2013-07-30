@@ -118,7 +118,11 @@ func CreateWechatPlayer(openid string) bool {
 	player.NickName = "EmptyNow"
 	player.UserName = "EmptyNow"
 	player.Exp = 0
-	player.Mobility = 0
+	player.Mobility = 100
+	player.Attack = 5
+	player.Defense = 5
+	player.Stamina = 5
+	player.Agility = 5
 
 	if _, err := player.Insert(); err != nil {
 		logger.Errorln("player service CreateWechatPlayer error:", err)
