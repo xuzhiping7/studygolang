@@ -4,7 +4,7 @@ import (
 	"fmt"
 	//"github.com/studygolang/mux"
 
-	"config"
+	//"config"
 	"encoding/xml"
 	"io/ioutil"
 	"logger"
