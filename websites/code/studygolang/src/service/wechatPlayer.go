@@ -100,6 +100,9 @@ func init() {
 	commandPrefix[5] = "搜寻"
 	commandPrefix[6] = "帮助"
 	commandPrefix[7] = "传说"
+	commandPrefix[8] = "装备"
+	commandPrefix[9] = "道具"
+	commandPrefix[10] = "使用"
 
 	map_MapName = make(map[int]string)
 	map_MapName[0] = "林风角酒馆"
@@ -134,6 +137,12 @@ func GetWechatPlayer(openid string) (player *model.WechatPlayer) {
 		return
 	}
 	//logger.Debugln(player)
+
+	//初始化动态信息
+	player.Cur_Mobility = player.Mobility
+	player.Cur_HP = player.Stamina*10 + player.Defense*5
+	player.Cur_Resistance = player.Defense * 10
+
 	return player
 }
 
@@ -141,7 +150,7 @@ func GetWechatPlayer(openid string) (player *model.WechatPlayer) {
 func OpenidExists(openid string) bool {
 	player := model.NewWechatPlayer()
 	if err := player.Where("openid=" + openid).Find("id"); err != nil {
-		logger.Errorln("service EmailExists error:", err)
+		logger.Errorln("service OpenidExists error:", err)
 		return false
 	}
 	if player.Id != 0 {
@@ -210,9 +219,10 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 		}
 	default:
 		switch {
+		//“我”
 		case strings.HasPrefix(content, commandPrefix[0]):
-			s_ReturnContent = fmt.Sprintf(textTemplate["6"], player.NickName, map_MapName[player.Location], player.Level, player.Exp, 100, "吟游诗人", "三寸黄金", "无", player.Mobility, player.Reputation, "453/656", "56/100", "25", player.Attack, player.Defense, player.Stamina, player.Agility, player.NoDistribution)
-			logger.Debugln(s_ReturnContent)
+			s_ReturnContent = fmt.Sprintf(textTemplate["6"], player.NickName, map_MapName[player.Location], player.Level, player.Exp, 100, "吟游诗人", "三寸黄金", "无", player.Cur_Mobility, player.Mobility, player.Reputation, "453/656", "56/100", "25", player.Attack, player.Defense, player.Stamina, player.Agility, player.NoDistribution)
+			//logger.Debugln(s_ReturnContent)
 		case strings.HasPrefix(content, commandPrefix[1]):
 
 		case strings.HasPrefix(content, commandPrefix[2]):
@@ -249,11 +259,21 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 
 		//修炼
 		case strings.HasPrefix(content, commandPrefix[3]):
-			s_ReturnContent = PlayerPratctice(player)
+
+			//查看是否有足够的行动力来执行改动作
+			temp_Str, b := PlayerCheckMobility(player, -5)
+			if b {
+				s_ReturnContent = PlayerPratctice(player) + "\n\n" + temp_Str
+			} else {
+				s_ReturnContent = temp_Str
+			}
+
 		case strings.HasPrefix(content, commandPrefix[6]):
 			s_ReturnContent = textTemplate["11"]
+
 		//传说
 		case strings.HasPrefix(content, commandPrefix[7]):
+
 			s_ReturnContent = fmt.Sprintf(textTemplate["900000"], len(map_PlayerData))
 		default:
 			s_ReturnContent = textTemplate["1"]
@@ -265,6 +285,9 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 }
 
 func PlayerPratctice(player *model.WechatPlayer) (s string) {
+	/*
+		变更经验和等级
+	*/
 	if rand.Intn(100) > 50 {
 		s = fmt.Sprintf(textTemplate["800000"], map_MapName[player.Location], "风铃怪", 10, "风信子", 2)
 		player.Exp += 10
@@ -285,4 +308,19 @@ func PlayerPratctice(player *model.WechatPlayer) (s string) {
 	player.UpdateExp()
 
 	return s
+}
+
+//扣除相应行动力
+func PlayerCheckMobility(player *model.WechatPlayer, value int) (s string, b bool) {
+	if player.Cur_Mobility+value < 0 {
+		b = false
+		s = textTemplate["800002"]
+
+	} else {
+		player.Cur_Mobility += value
+		s = fmt.Sprintf(textTemplate["800003"], value, player.Cur_Mobility, player.Mobility)
+		b = true
+	}
+
+	return s, b
 }

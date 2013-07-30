@@ -4,6 +4,7 @@ import (
 	"fmt"
 	//"github.com/studygolang/mux"
 
+	"config"
 	"encoding/xml"
 	"io/ioutil"
 	"logger"
@@ -35,14 +36,17 @@ func WechatEntrance(rw http.ResponseWriter, req *http.Request) {
 
 	v := textRecieveMessage{}
 
+	//本地开发
+	//bytes, _ := ioutil.ReadFile(config.ROOT + "/conf/localtest.xml")
+
+	//真实环境
 	bytes, _ := ioutil.ReadAll(req.Body)
+
 	err := xml.Unmarshal(bytes, &v)
 	if err != nil {
 		logger.Errorln(err)
 		return
 	}
-	//v.FromUserName = "xuzhipingtest"
-	//v.Content = "修炼"
 
 	responXML := textResponseMessage{}
 	responXML.FromUserName = v.ToUserName
