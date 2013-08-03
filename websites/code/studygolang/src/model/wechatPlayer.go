@@ -161,8 +161,8 @@ func (this *WechatPlayer) Order(order string) *WechatPlayer {
 }
 
 func (this *WechatPlayer) prepareInsertData() {
-	this.columns = []string{"openid", "username", "nickname", "exp", "mobility"}
-	this.colValues = []interface{}{this.OpenId, this.UserName, this.NickName, this.Exp, this.Mobility}
+	this.columns = []string{"openid", "username", "nickname", "exp", "mobility", "attack", "defense", "stamina", "agility"}
+	this.colValues = []interface{}{this.OpenId, this.UserName, this.NickName, this.Exp, this.Mobility, this.Attack, this.Defense, this.Stamina, this.Agility}
 }
 
 func (this *WechatPlayer) colFieldMap() map[string]interface{} {
