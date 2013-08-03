@@ -28,7 +28,7 @@ var textTemplate map[string]string
 var commandPrefix map[int]string
 
 //储存地图ID对应名
-var map_MapName map[int]string
+//var map_MapName map[int]string
 
 //定义枚举事件常量
 const (
@@ -104,10 +104,10 @@ func init() {
 	commandPrefix[9] = "道具"
 	commandPrefix[10] = "使用"
 
-	map_MapName = make(map[int]string)
-	map_MapName[0] = "林风角酒馆"
-	map_MapName[1] = "林风角"
-	map_MapName[2] = "林风南海岸"
+	//map_MapName = make(map[int]string)
+	//map_MapName[0] = "林风角酒馆"
+	//map_MapName[1] = "林风角"
+	//map_MapName[2] = "林风南海岸"
 }
 
 // 创建一个wechat玩家
@@ -144,9 +144,11 @@ func GetWechatPlayer(openid string) (player *model.WechatPlayer) {
 
 	//初始化动态信息
 	player.Cur_Mobility = player.Mobility
-	player.Cur_HP = player.Stamina*10 + player.Defense*5
-	player.Cur_Resistance = player.Defense * 10
-
+	player.Cur_HP = player.Stamina * 10
+	player.Max_HP = player.Stamina * 10
+	player.Cur_Resistance = player.Stamina + player.Defense*3 + player.Wisdom*3
+	player.Max_Burden = player.Stamina * 5
+	player.Cur_Burden = 0
 	return player
 }
 
@@ -195,6 +197,7 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 	//logger.Debugln(player)
 
 	switch player.Flag {
+
 	case flag_注册完成:
 		s_ReturnContent = textTemplate["4"]
 		player.Flag = flag_用户传入角色名申请更名操作
@@ -222,21 +225,28 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 			}
 		}
 	default:
+		//如果有命令补全，则补全命令
+		if player.CommentPrefixStr != "" {
+			content = player.CommentPrefixStr + content
+		}
+
 		switch {
-		//“我”
+		//我
 		case strings.HasPrefix(content, commandPrefix[0]):
-			s_ReturnContent = fmt.Sprintf(textTemplate["6"], player.NickName, map_MapName[player.Location], player.Level, player.Exp, 100, "吟游诗人", "三寸黄金", "无", player.Cur_Mobility, player.Mobility, player.Reputation, "453/656", "56/100", "25", player.Attack, player.Defense, player.Stamina, player.Agility, player.NoDistribution)
+
+			s_ReturnContent = fmt.Sprintf(textTemplate["6"], player.NickName, Map_MapData[player.Location].Name, player.Level, player.Exp, 100, "无", "无", "无", player.Cur_Mobility, player.Mobility, player.Reputation, player.Cur_HP, player.Max_HP, player.Cur_Burden, player.Max_Burden, player.Cur_Resistance, player.Attack, player.Defense, player.Stamina, player.Agility, player.Wisdom, player.NoDistribution)
 			//logger.Debugln(s_ReturnContent)
 		case strings.HasPrefix(content, commandPrefix[1]):
 
+		//前往
 		case strings.HasPrefix(content, commandPrefix[2]):
 			str_AimMap := strings.TrimPrefix(content, commandPrefix[2])
 
 			b_Match := false
 
 			//匹配玩家所在地
-			for k, v := range map_MapName {
-				if str_AimMap == v {
+			for k, v := range Map_MapData {
+				if str_AimMap == v.Name {
 					b_Match = true
 					player.Location = k
 
@@ -252,13 +262,23 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 				//fmt.Printf("%s -> %s\n", k, v)
 			}
 
-			//如果没有匹配到地点，则输出当前玩家可以前往的地点
+			//如果没有匹配到地点，则输出当前玩家可以前往的地点，并且进入命令补全模式
 			if !b_Match {
-				s_ReturnContent += textTemplate["10"]
-				for _, v := range map_MapName {
-					s_ReturnContent += fmt.Sprintf(textTemplate["9"], v)
+
+				//如果有命令补全，则消掉
+				if player.CommentPrefixStr != "" {
+					s_ReturnContent = textTemplate["7"]
+					player.CommentPrefixStr = ""
+				} else {
+
+					s_ReturnContent += textTemplate["10"]
+					for _, v := range Map_MapData {
+						s_ReturnContent += v.Name + "\n"
+					}
+					player.CommentPrefixStr = commandPrefix[2]
 				}
 			}
+
 			logger.Debugln(s_ReturnContent)
 
 		//修炼
@@ -280,7 +300,7 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 
 			s_ReturnContent = fmt.Sprintf(textTemplate["900000"], len(map_PlayerData))
 		default:
-			s_ReturnContent = textTemplate["1"]
+			s_ReturnContent = textTemplate["900001"]
 		}
 
 	}
@@ -292,29 +312,47 @@ func PlayerPratctice(player *model.WechatPlayer) (s string) {
 	/*
 		变更经验和等级
 	*/
+	mosterIndex := 0
 	if rand.Intn(100) > 50 {
-		s = fmt.Sprintf(textTemplate["800000"], map_MapName[player.Location], "风铃怪", 10, "风信子", 2)
-		player.Exp += 10
+		mosterIndex = 0
 	} else {
-		s = fmt.Sprintf(textTemplate["800000"], map_MapName[player.Location], "泥巴怪", 5, "粘土", 2)
-		player.Exp += 5
+		mosterIndex = 1
 	}
 
-	//假设升级就减少经验
-	if player.Exp > 100 {
-		player.Exp -= 100
-		player.Level++
-		player.UpdateLevel()
+	b_Win, HPLoss := Player_VS_Moster(player, mosterIndex)
 
-		s = s + "\n" + textTemplate["800001"]
+	if b_Win {
+		s = fmt.Sprintf(textTemplate["800000"], Map_MapData[player.Location].Name, Map_MonsterData[mosterIndex].Name)
 
+		s += "\n\n" + fmt.Sprintf(textTemplate["800005"], -HPLoss, player.Cur_HP, player.Max_HP)
+
+		s += "\n" + fmt.Sprintf(textTemplate["800006"], Map_MonsterData[mosterIndex].Exp)
+
+		//判断是否有物品获得
+		propId := GetMosterProp(mosterIndex)
+		if propId != -1 {
+			s += "\n" + fmt.Sprintf(textTemplate["800007"], Map_PropsData[propId].Name, Map_PropsData[propId].Descript)
+		}
+
+		player.Exp += Map_MonsterData[mosterIndex].Exp
+		//假设升级就减少经验
+		if player.Exp > 100 {
+			player.Exp -= 100
+			player.Level++
+			player.UpdateLevel()
+
+			s = s + "\n" + textTemplate["800001"]
+		}
+		player.UpdateExp()
+	} else {
+		s = fmt.Sprintf(textTemplate["800004"], Map_MapData[player.Location].Name, Map_MonsterData[mosterIndex].Name)
+		s += "\n\n" + fmt.Sprintf(textTemplate["800005"], HPLoss, player.Cur_HP, player.Max_HP)
 	}
-	player.UpdateExp()
 
 	return s
 }
 
-//扣除相应行动力
+//扣除或添加相应行动力
 func PlayerCheckMobility(player *model.WechatPlayer, value int) (s string, b bool) {
 	if player.Cur_Mobility+value < 0 {
 		b = false

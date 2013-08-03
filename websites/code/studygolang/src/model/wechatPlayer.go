@@ -24,6 +24,7 @@ type WechatPlayer struct {
 	Defense        int    `json:"defense"`
 	Stamina        int    `json:"stamina"`
 	Agility        int    `json:"agility"`
+	Wisdom         int    `json:"wisdom"`
 	NoDistribution int    `json:"no_distribution"`
 	Location       int    `json:"location"`
 	Flag           int    `json:"flag"`
@@ -36,17 +37,27 @@ type WechatPlayer struct {
 	/*
 		扩展的动态数据
 	*/
-	//当前HP值
+	//HP值
+	Max_HP int
 	Cur_HP int
 	//当前行动力
 	Cur_Mobility int
 	//当前抗性
 	Cur_Resistance int
+	//负重
+	Max_Burden int
+	Cur_Burden int
+
+	/*
+		辅助数据
+	*/
+	CommentPrefixStr string
 }
 
 func NewWechatPlayer() *WechatPlayer {
 	return &WechatPlayer{
-		Dao: &Dao{tablename: "wechat_base"},
+		CommentPrefixStr: "",
+		Dao:              &Dao{tablename: "wechat_base"},
 	}
 }
 
@@ -170,6 +181,7 @@ func (this *WechatPlayer) colFieldMap() map[string]interface{} {
 		"defense":         &this.Defense,
 		"stamina":         &this.Stamina,
 		"agility":         &this.Agility,
+		"wisdom":          &this.Wisdom,
 		"no_distribution": &this.NoDistribution,
 	}
 }
