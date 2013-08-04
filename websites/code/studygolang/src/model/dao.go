@@ -146,7 +146,10 @@ func (this *Dao) Increment(field string, num int) error {
 // 获取总记录数
 func (this *Dao) Count() (total int, err error) {
 	strSql := util.CountSql(this)
-	logger.Debugln("Count sql:", strSql)
+
+	//xuzhiping mark
+	//logger.Debugln("Count sql:", strSql)
+
 	err = this.Open()
 	if err != nil {
 		return
@@ -191,7 +194,10 @@ func (this *Dao) FindAll(selectCol ...string) (*sql.Rows, error) {
 	sort.Sort(sort.StringSlice(selectCol))
 	this.selectCols = "`" + strings.Join(selectCol, "`,`") + "`"
 	strSql := util.SelectSql(this)
-	logger.Debugln("FindAll sql:", strSql)
+
+	//xuzhiping mark
+	//logger.Debugln("FindAll sql:", strSql)
+
 	err := this.Open()
 	if err != nil {
 		return nil, err
@@ -359,6 +365,12 @@ func (this *Dao) Set(clause string) {
 		this.columns = append(this.columns, "`"+parts[0]+"`=?")
 		this.colValues = append(this.colValues, strings.TrimSpace(parts[1]))
 	}
+}
+
+//清空加入字段
+func (this *Dao) SetEmpty() {
+	this.columns = nil
+	this.colValues = nil
 }
 
 func (this *Dao) SelectCols() string {
