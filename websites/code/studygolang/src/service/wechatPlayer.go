@@ -13,8 +13,8 @@ import (
 	"fmt"
 	//"io/ioutil"
 	"logger"
-	"math/rand"
 	"model"
+	"strconv"
 	"strings"
 )
 
@@ -103,6 +103,12 @@ func init() {
 	commandPrefix[8] = "装备"
 	commandPrefix[9] = "道具"
 	commandPrefix[10] = "使用"
+	commandPrefix[11] = "提升"
+	commandPrefix[12] = "提升攻击"
+	commandPrefix[13] = "提升体力"
+	commandPrefix[14] = "提升防御"
+	commandPrefix[15] = "提升敏捷"
+	commandPrefix[16] = "提升智慧"
 
 	//map_MapName = make(map[int]string)
 	//map_MapName[0] = "林风角酒馆"
@@ -234,7 +240,7 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 		//我
 		case strings.HasPrefix(content, commandPrefix[0]):
 
-			s_ReturnContent = fmt.Sprintf(textTemplate["6"], player.NickName, Map_MapData[player.Location].Name, player.Level, player.Exp, 100, "无", "无", "无", player.Cur_Mobility, player.Mobility, player.Reputation, player.Cur_HP, player.Max_HP, player.Cur_Burden, player.Max_Burden, player.Cur_Resistance, player.Attack, player.Defense, player.Stamina, player.Agility, player.Wisdom, player.NoDistribution)
+			s_ReturnContent = fmt.Sprintf(textTemplate["6"], player.NickName, Map_MapData[player.Location].Name, player.Level, player.Exp, 100, player.Cur_Mobility, player.Mobility, player.Reputation, player.Cur_HP, player.Max_HP, player.Cur_Burden, player.Max_Burden, player.Cur_Resistance, player.Attack, player.Defense, player.Stamina, player.Agility, player.Wisdom, player.NoDistribution)
 			//logger.Debugln(s_ReturnContent)
 		case strings.HasPrefix(content, commandPrefix[1]):
 
@@ -247,10 +253,15 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 			//匹配玩家所在地
 			for k, v := range Map_MapData {
 				if str_AimMap == v.Name {
+					//匹配成功，消除命令前缀
+					if player.CommentPrefixStr != "" {
+						player.CommentPrefixStr = ""
+					}
+
 					b_Match = true
 					player.Location = k
 
-					s_ReturnContent = fmt.Sprintf(textTemplate["8"], v)
+					s_ReturnContent = fmt.Sprintf(textTemplate["800009"], v.Name, Map_MapData[player.Location].MapDescript)
 
 					if err := player.UpdateLocation(); err != nil {
 						logger.Errorln("service wechat UpdateLocation Error:", err)
@@ -279,10 +290,16 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 				}
 			}
 
-			logger.Debugln(s_ReturnContent)
+			//logger.Debugln(s_ReturnContent)
 
 		//修炼
 		case strings.HasPrefix(content, commandPrefix[3]):
+			//查看玩家当前地点是否适合修炼
+			b_CanMapPractice := CanMapPractice(player.Location)
+			if !b_CanMapPractice {
+				s_ReturnContent = textTemplate["800008"]
+				break
+			}
 
 			//查看是否有足够的行动力来执行改动作
 			temp_Str, b := PlayerCheckMobility(player, -5)
@@ -297,8 +314,124 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 
 		//传说
 		case strings.HasPrefix(content, commandPrefix[7]):
-
 			s_ReturnContent = fmt.Sprintf(textTemplate["900000"], len(map_PlayerData))
+		//提升
+		case content == commandPrefix[11]:
+			player.CommentPrefixStr = commandPrefix[11]
+			if player.NoDistribution > 0 {
+				s_ReturnContent = fmt.Sprintf(textTemplate["100003"], player.NoDistribution)
+			} else {
+				s_ReturnContent = textTemplate["100002"]
+			}
+
+		//提升攻击
+		case strings.HasPrefix(content, commandPrefix[12]):
+			player.CommentPrefixStr = ""
+			str := strings.TrimPrefix(content, commandPrefix[12])
+			point1, err := strconv.ParseInt(str, 10, 32)
+			if err != nil {
+				logger.Errorln(err)
+				s_ReturnContent = textTemplate["900001"]
+				break
+			}
+			point := int(point1)
+
+			if player.NoDistribution-point < 0 {
+				s_ReturnContent = fmt.Sprintf(textTemplate["100004"], player.NoDistribution, point, "攻击")
+				break
+			}
+
+			player.Attack += point
+			player.NoDistribution -= point
+			player.UpdateNoDistribution()
+			player.UpdateAttributes()
+
+			s_ReturnContent = fmt.Sprintf(textTemplate["100001"], "攻击", point, "攻击", player.Attack-point, player.Attack)
+		//提升体力
+		case strings.HasPrefix(content, commandPrefix[13]):
+			player.CommentPrefixStr = ""
+			str := strings.TrimPrefix(content, commandPrefix[13])
+			point1, err := strconv.ParseInt(str, 10, 32)
+			point := int(point1)
+			if err != nil {
+				logger.Errorln(err)
+				s_ReturnContent = textTemplate["900001"]
+				break
+			}
+
+			if player.NoDistribution-point < 0 {
+				s_ReturnContent = fmt.Sprintf(textTemplate["100004"], player.NoDistribution, point, "体力")
+				break
+			}
+
+			player.Stamina += point
+			player.NoDistribution -= point
+			player.UpdateNoDistribution()
+			player.UpdateAttributes()
+
+			s_ReturnContent = fmt.Sprintf(textTemplate["100001"], "体力", point, "体力", player.Stamina-point, player.Stamina)
+		//提升防御
+		case strings.HasPrefix(content, commandPrefix[14]):
+			player.CommentPrefixStr = ""
+			str := strings.TrimPrefix(content, commandPrefix[14])
+			point1, err := strconv.ParseInt(str, 10, 32)
+			point := int(point1)
+			if err != nil {
+				logger.Errorln(err)
+				s_ReturnContent = textTemplate["900001"]
+				break
+			}
+
+			if player.NoDistribution-point < 0 {
+				s_ReturnContent = fmt.Sprintf(textTemplate["100004"], player.NoDistribution, point, "防御")
+				break
+			}
+
+			player.Defense += point
+			player.NoDistribution -= point
+			player.UpdateNoDistribution()
+			player.UpdateAttributes()
+
+			s_ReturnContent = fmt.Sprintf(textTemplate["100001"], "防御", point, "防御", player.Defense-point, player.Defense)
+		//提升敏捷
+		case strings.HasPrefix(content, commandPrefix[15]):
+			player.CommentPrefixStr = ""
+			str := strings.TrimPrefix(content, commandPrefix[15])
+			point1, err := strconv.ParseInt(str, 10, 32)
+			point := int(point1)
+			if err != nil {
+				logger.Errorln(err)
+				s_ReturnContent = textTemplate["900001"]
+				break
+			}
+			if player.NoDistribution-point < 0 {
+				s_ReturnContent = fmt.Sprintf(textTemplate["100004"], player.NoDistribution, point, "敏捷")
+				break
+			}
+			player.Agility += point
+			player.NoDistribution -= point
+			s_ReturnContent = fmt.Sprintf(textTemplate["100001"], "敏捷", point, "敏捷", player.Agility-point, player.Agility)
+		//提升智慧
+		case strings.HasPrefix(content, commandPrefix[16]):
+			player.CommentPrefixStr = ""
+			str := strings.TrimPrefix(content, commandPrefix[16])
+			point1, err := strconv.ParseInt(str, 10, 32)
+			point := int(point1)
+			if err != nil {
+				logger.Errorln(err)
+				s_ReturnContent = textTemplate["900001"]
+				break
+			}
+			if player.NoDistribution-point < 0 {
+				s_ReturnContent = fmt.Sprintf(textTemplate["100004"], player.NoDistribution, point, "智慧")
+				break
+			}
+			player.Wisdom += point
+			player.NoDistribution -= point
+			player.UpdateNoDistribution()
+			player.UpdateAttributes()
+
+			s_ReturnContent = fmt.Sprintf(textTemplate["100001"], "智慧", point, "智慧", player.Wisdom-point, player.Wisdom)
 		default:
 			s_ReturnContent = textTemplate["900001"]
 		}
@@ -309,15 +442,14 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 }
 
 func PlayerPratctice(player *model.WechatPlayer) (s string) {
-	/*
-		变更经验和等级
-	*/
-	mosterIndex := 0
-	if rand.Intn(100) > 50 {
-		mosterIndex = 0
-	} else {
-		mosterIndex = 1
-	}
+
+	//根据玩家所在地图，获取玩家能够匹配到的怪物
+	mosterIndex := GetMosterByMap(player.Location)
+
+	//if mosterIndex == -1 {
+	//	s = textTemplate["800008"]
+	//	return s
+	//}
 
 	b_Win, HPLoss := Player_VS_Moster(player, mosterIndex)
 
@@ -338,8 +470,12 @@ func PlayerPratctice(player *model.WechatPlayer) (s string) {
 		//假设升级就减少经验
 		if player.Exp > 100 {
 			player.Exp -= 100
+
 			player.Level++
 			player.UpdateLevel()
+
+			player.NoDistribution += 3
+			player.UpdateNoDistribution()
 
 			s = s + "\n" + textTemplate["800001"]
 		}

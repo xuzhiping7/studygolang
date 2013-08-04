@@ -75,36 +75,57 @@ func (this *WechatPlayer) Insert() (int, error) {
 //更新用户当前事件节点
 func (this *WechatPlayer) UpdateFlag() error {
 	err := this.Set("flag=" + strconv.Itoa(this.Flag)).Where("openid=" + this.OpenId).Update()
+	this.SetEmpty()
 	return err
 }
 
 //更新用户昵称
 func (this *WechatPlayer) UpdateNickName() error {
 	err := this.Set("nickname=" + this.NickName).Where("openid=" + this.OpenId).Update()
+	this.SetEmpty()
 	return err
 }
 
 //更新地名
 func (this *WechatPlayer) UpdateLocation() error {
 	err := this.Set("location=" + strconv.Itoa(this.Location)).Where("openid=" + this.OpenId).Update()
+	this.SetEmpty()
 	return err
 }
 
 //更新经验值
 func (this *WechatPlayer) UpdateExp() error {
 	err := this.Set("exp=" + strconv.Itoa(this.Exp)).Where("openid=" + this.OpenId).Update()
+	this.SetEmpty()
 	return err
 }
 
 //更新等级
 func (this *WechatPlayer) UpdateLevel() error {
 	err := this.Set("level=" + strconv.Itoa(this.Level)).Where("openid=" + this.OpenId).Update()
+	this.SetEmpty()
 	return err
 }
 
 //更新行动力
 func (this *WechatPlayer) UpdateMobility() error {
 	err := this.Set("mobility=" + strconv.Itoa(this.Mobility)).Where("openid=" + this.OpenId).Update()
+	this.SetEmpty()
+	return err
+}
+
+//更新分配点(NoDistribution)
+func (this *WechatPlayer) UpdateNoDistribution() error {
+	err := this.Set("no_distribution=" + strconv.Itoa(this.NoDistribution)).Where("openid=" + this.OpenId).Update()
+	this.SetEmpty()
+	return err
+}
+
+//更新属性点
+func (this *WechatPlayer) UpdateAttributes() error {
+	//logger.Debugln("attack=" + strconv.Itoa(this.Attack) + ",defense=" + strconv.Itoa(this.Defense) + ",stamina=" + strconv.Itoa(this.Stamina) + ",agility=" + strconv.Itoa(this.Agility) + ",wisdom=" + strconv.Itoa(this.Wisdom))
+	err := this.Set("attack=" + strconv.Itoa(this.Attack) + ",defense=" + strconv.Itoa(this.Defense) + ",stamina=" + strconv.Itoa(this.Stamina) + ",agility=" + strconv.Itoa(this.Agility) + ",wisdom=" + strconv.Itoa(this.Wisdom)).Where("openid=" + this.OpenId).Update()
+	this.SetEmpty()
 	return err
 }
 
