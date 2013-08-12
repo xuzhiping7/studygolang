@@ -18,6 +18,7 @@ type WechatPlayer struct {
 	Sex            int    `json:"sex"`
 	Level          int    `json:"level"`
 	Exp            int    `json:"exp"`
+	Coin           int    `json:"coin"`
 	Mobility       int    `json:"mobility"`
 	Reputation     int    `json:"reputation"`
 	Attack         int    `json:"attack"`
@@ -47,6 +48,8 @@ type WechatPlayer struct {
 	//负重
 	Max_Burden int
 	Cur_Burden int
+	//玩家道具
+	Map_PlayerProp map[int]*WechatPlayerProp
 
 	/*
 		辅助数据
@@ -182,8 +185,8 @@ func (this *WechatPlayer) Order(order string) *WechatPlayer {
 }
 
 func (this *WechatPlayer) prepareInsertData() {
-	this.columns = []string{"openid", "username", "nickname", "exp", "mobility", "attack", "defense", "stamina", "agility"}
-	this.colValues = []interface{}{this.OpenId, this.UserName, this.NickName, this.Exp, this.Mobility, this.Attack, this.Defense, this.Stamina, this.Agility}
+	this.columns = []string{"openid", "username", "nickname", "exp", "mobility", "attack", "defense", "stamina", "agility", "wisdom"}
+	this.colValues = []interface{}{this.OpenId, this.UserName, this.NickName, this.Exp, this.Mobility, this.Attack, this.Defense, this.Stamina, this.Agility, this.Wisdom}
 }
 
 func (this *WechatPlayer) colFieldMap() map[string]interface{} {
@@ -193,6 +196,7 @@ func (this *WechatPlayer) colFieldMap() map[string]interface{} {
 		"username":        &this.UserName,
 		"nickname":        &this.NickName,
 		"exp":             &this.Exp,
+		"coin":            &this.Coin,
 		"sex":             &this.Sex,
 		"mobility":        &this.Mobility,
 		"location":        &this.Location,

@@ -129,6 +129,7 @@ func CreateWechatPlayer(openid string) bool {
 	player.Defense = 5
 	player.Stamina = 5
 	player.Agility = 5
+	player.Wisdom = 5
 
 	if _, err := player.Insert(); err != nil {
 		logger.Errorln("player service CreateWechatPlayer error:", err)
@@ -149,6 +150,8 @@ func GetWechatPlayer(openid string) (player *model.WechatPlayer) {
 	//logger.Debugln(player)
 
 	//初始化动态信息
+	InitPlayerProp(player)
+
 	player.Cur_Mobility = player.Mobility
 	player.Cur_HP = player.Stamina * 10
 	player.Max_HP = player.Stamina * 10
@@ -156,6 +159,22 @@ func GetWechatPlayer(openid string) (player *model.WechatPlayer) {
 	player.Max_Burden = player.Stamina * 5
 	player.Cur_Burden = 0
 	return player
+}
+
+func InitPlayerProp(player *model.WechatPlayer) {
+
+	props, err := model.NewWechatPlayerProp().Where("player_id=" + strconv.Itoa(player.Id)).FindAll()
+
+	if err != nil {
+		logger.Errorln("service InitPlayerProp error:", err)
+	} else {
+		player.Map_PlayerProp = make(map[int]*model.WechatPlayerProp)
+
+		for _, prop := range props {
+			player.Map_PlayerProp[prop.PropId] = prop
+		}
+	}
+
 }
 
 // 判断该OpenID是否已经被注册了
@@ -240,7 +259,7 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 		//我
 		case strings.HasPrefix(content, commandPrefix[0]):
 
-			s_ReturnContent = fmt.Sprintf(textTemplate["6"], player.NickName, Map_MapData[player.Location].Name, player.Level, player.Exp, 100, player.Cur_Mobility, player.Mobility, player.Reputation, player.Cur_HP, player.Max_HP, player.Cur_Burden, player.Max_Burden, player.Cur_Resistance, player.Attack, player.Defense, player.Stamina, player.Agility, player.Wisdom, player.NoDistribution)
+			s_ReturnContent = fmt.Sprintf(textTemplate["6"], player.NickName, Map_MapData[player.Location].Name, player.Level, player.Exp, 100, player.Cur_Mobility, player.Mobility, player.Reputation, player.Coin, player.Cur_HP, player.Max_HP, player.Cur_Burden, player.Max_Burden, player.Cur_Resistance, player.Attack, player.Defense, player.Stamina, player.Agility, player.Wisdom, player.NoDistribution)
 			//logger.Debugln(s_ReturnContent)
 		case strings.HasPrefix(content, commandPrefix[1]):
 
@@ -315,6 +334,11 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 		//传说
 		case strings.HasPrefix(content, commandPrefix[7]):
 			s_ReturnContent = fmt.Sprintf(textTemplate["900000"], len(map_PlayerData))
+
+		//道具
+		case strings.HasPrefix(content, commandPrefix[9]):
+			s_ReturnContent = ShowPlayerProps(player)
+
 		//提升
 		case content == commandPrefix[11]:
 			player.CommentPrefixStr = commandPrefix[11]
@@ -462,8 +486,14 @@ func PlayerPratctice(player *model.WechatPlayer) (s string) {
 
 		//判断是否有物品获得
 		propId := GetMosterProp(mosterIndex)
+
 		if propId != -1 {
-			s += "\n" + fmt.Sprintf(textTemplate["800007"], Map_PropsData[propId].Name, Map_PropsData[propId].Descript)
+			//获取物品
+			b_Get := PlayerGetProp(player, propId, 1)
+
+			if b_Get {
+				s += "\n" + fmt.Sprintf(textTemplate["800007"], Map_PropsData[propId].Name, Map_PropsData[propId].Descript)
+			}
 		}
 
 		player.Exp += Map_MonsterData[mosterIndex].Exp
@@ -501,4 +531,55 @@ func PlayerCheckMobility(player *model.WechatPlayer, value int) (s string, b boo
 	}
 
 	return s, b
+}
+
+//玩家获取道具
+func PlayerGetProp(player *model.WechatPlayer, prop_index int, num int) (b bool) {
+	//logger.Debugln(prop_index)
+	_, ok := player.Map_PlayerProp[prop_index]
+
+	if ok {
+		//logger.Debugln(player.Map_PlayerProp[prop_index])
+
+		player.Map_PlayerProp[prop_index].PropNum += 1
+		if err := player.Map_PlayerProp[prop_index].UpdatePlayerPropNum(); err != nil {
+			delete(player.Map_PlayerProp, prop_index)
+			logger.Errorln("player service PlayerGetProp if error:", err)
+			return false
+		}
+	} else {
+		//logger.Debugln(player.Map_PlayerProp[prop_index])
+
+		player.Map_PlayerProp[prop_index] = model.NewWechatPlayerProp()
+		player.Map_PlayerProp[prop_index].PropId = prop_index
+		player.Map_PlayerProp[prop_index].PlayerId = player.Id
+		player.Map_PlayerProp[prop_index].PropNum = 1
+
+		id, err := player.Map_PlayerProp[prop_index].Insert()
+		if err != nil {
+			delete(player.Map_PlayerProp, prop_index)
+			logger.Errorln("player service PlayerGetProp else error:", err)
+			return false
+		}
+		player.Map_PlayerProp[prop_index].Id = id
+	}
+
+	return true
+}
+
+func ShowPlayerProps(player *model.WechatPlayer) (s string) {
+	if len(player.Map_PlayerProp) > 0 {
+		s += textTemplate["100005"] + "\n\n"
+		for _, v := range player.Map_PlayerProp {
+			if prop, ok := Map_PropsData[v.PropId]; ok {
+				s += fmt.Sprintf(textTemplate["100007"], prop.Name, v.PropNum, prop.Descript) + "\n"
+			} else {
+				logger.Errorln("player service ShowPlayerProps error: No this prop")
+			}
+		}
+
+	} else {
+		s += textTemplate["100006"]
+	}
+	return s
 }

@@ -14,8 +14,8 @@ func init() {
 
 	Map_MonsterData = make(map[int]*model.WechatMonster)
 
-	Map_MonsterData[0] = model.NewWechatMonster(0, "风铃怪", 15, 2, 2, 4, 1, 1, []int{0}, []int{100})
-	Map_MonsterData[1] = model.NewWechatMonster(0, "泥巴怪", 15, 3, 4, 1, 4, 2, []int{0, 1}, []int{20, 40})
+	Map_MonsterData[0] = model.NewWechatMonster(0, "风铃怪", 15, 2, 2, 4, 1, 1, []int{1, 2}, []int{30, 30})
+	Map_MonsterData[1] = model.NewWechatMonster(0, "泥巴怪", 15, 3, 4, 1, 4, 2, []int{1, 3}, []int{20, 40})
 }
 
 //一个玩家与一个怪物对战情况
@@ -69,6 +69,7 @@ func GetMosterProp(mosterIndex int) (propIndex int) {
 	for i := 0; i < len(Map_MonsterData[mosterIndex].PropsGetRate); i++ {
 		if number < Map_MonsterData[mosterIndex].PropsGetRate[i] {
 			propIndex = Map_MonsterData[mosterIndex].Props[i]
+			break
 		}
 		number -= Map_MonsterData[mosterIndex].PropsGetRate[i]
 	}
