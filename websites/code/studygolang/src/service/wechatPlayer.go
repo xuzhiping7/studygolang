@@ -656,8 +656,8 @@ func PlayerUseProp(player *model.WechatPlayer, propName string) (s string) {
 func DecreasePlayerProp(player *model.WechatPlayer, prop int) {
 	player.Map_PlayerProp[prop].PropNum -= 1
 	if player.Map_PlayerProp[prop].PropNum == 0 {
-		delete(player.Map_PlayerProp, prop)
 		model.NewWechatPlayerProp().Where("id=" + strconv.Itoa(player.Map_PlayerProp[prop].Id)).Delete()
+		delete(player.Map_PlayerProp, prop)
 	} else {
 		player.Map_PlayerProp[prop].UpdatePlayerPropNum()
 	}
