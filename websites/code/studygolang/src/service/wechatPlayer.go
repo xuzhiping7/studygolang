@@ -109,6 +109,7 @@ func init() {
 	commandPrefix[14] = "提升防御"
 	commandPrefix[15] = "提升敏捷"
 	commandPrefix[16] = "提升智慧"
+	commandPrefix[17] = "附近"
 
 	//map_MapName = make(map[int]string)
 	//map_MapName[0] = "林风角酒馆"
@@ -339,6 +340,11 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 		case strings.HasPrefix(content, commandPrefix[9]):
 			s_ReturnContent = ShowPlayerProps(player)
 
+		//使用
+		case strings.HasPrefix(content, commandPrefix[10]):
+			str_PropName := strings.TrimPrefix(content, commandPrefix[10])
+			s_ReturnContent = PlayerUseProp(player, str_PropName)
+
 		//提升
 		case content == commandPrefix[11]:
 			player.CommentPrefixStr = commandPrefix[11]
@@ -456,6 +462,8 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 			player.UpdateAttributes()
 
 			s_ReturnContent = fmt.Sprintf(textTemplate["100001"], "智慧", point, "智慧", player.Wisdom-point, player.Wisdom)
+		case strings.HasPrefix(content, commandPrefix[17]):
+			s_ReturnContent = ShowCurMapPlayer(player.Location, player.OpenId)
 		default:
 			s_ReturnContent = textTemplate["900001"]
 		}
@@ -567,6 +575,7 @@ func PlayerGetProp(player *model.WechatPlayer, prop_index int, num int) (b bool)
 	return true
 }
 
+//显示玩家所拥有的道具
 func ShowPlayerProps(player *model.WechatPlayer) (s string) {
 	if len(player.Map_PlayerProp) > 0 {
 		s += textTemplate["100005"] + "\n\n"
@@ -581,5 +590,93 @@ func ShowPlayerProps(player *model.WechatPlayer) (s string) {
 	} else {
 		s += textTemplate["100006"]
 	}
+	return s
+}
+
+//根据字符串判断玩家是否拥有此道具,拥有的话则返回一个正确的道具ID
+func CheckPlayerHasProp(player *model.WechatPlayer, propName string) (propId int, b bool) {
+	b = false
+	propId = -1
+	for _, v := range player.Map_PlayerProp {
+		propInfo, ok := Map_PropsData[v.PropId]
+		if ok {
+			if propInfo.Name == propName {
+				propId = propInfo.Id
+				b = true
+				break
+			}
+		} else {
+			logger.Debugln("CheckPlayerHasProp : Not find prop in Map_PropData")
+		}
+	}
+
+	return propId, b
+}
+
+//玩家使用道具
+func PlayerUseProp(player *model.WechatPlayer, propName string) (s string) {
+
+	//查看玩家是否存在此道具,返回ID
+
+	propId, ok := CheckPlayerHasProp(player, propName)
+
+	if !ok {
+		s = fmt.Sprintf(textTemplate["100009"], propName)
+		return
+	}
+
+	targetProp, ok := Map_PropsData[propId]
+
+	//根据道具的类型来使用
+	if ok {
+		switch targetProp.PropType {
+		case model.PropType_恢复生命值:
+			addpoint := targetProp.PropValue
+			player.Cur_HP += targetProp.PropValue
+
+			if player.Cur_HP > player.Max_HP {
+				addpoint = targetProp.PropValue - (player.Cur_HP - player.Max_HP)
+				player.Cur_HP = player.Max_HP
+			}
+			s = fmt.Sprintf(textTemplate["100008"], targetProp.Name, addpoint, player.Cur_HP, player.Max_HP)
+
+		default:
+			s = textTemplate["100010"]
+		}
+
+		//减少道具
+		DecreasePlayerProp(player, targetProp.Id)
+	} else {
+		s = textTemplate["900002"]
+	}
+	return s
+}
+
+//减少玩家某个道具
+func DecreasePlayerProp(player *model.WechatPlayer, prop int) {
+	player.Map_PlayerProp[prop].PropNum -= 1
+	if player.Map_PlayerProp[prop].PropNum == 0 {
+		model.NewWechatPlayerProp().Where("id=" + strconv.Itoa(player.Map_PlayerProp[prop].Id)).Delete()
+	} else {
+		player.Map_PlayerProp[prop].UpdatePlayerPropNum()
+	}
+}
+
+//返回除了自己以外的所有玩家。“附近”
+func ShowCurMapPlayer(mapId int, playerOpenId string) (s string) {
+
+	s = ""
+	for _, v := range map_PlayerData {
+		if v.Location == mapId && v.OpenId != playerOpenId {
+			s += "\n" + v.NickName
+		}
+	}
+
+	if s != "" {
+		s = textTemplate["800010"] + s
+	} else {
+		s = textTemplate["800011"]
+	}
+
 	return s
 }

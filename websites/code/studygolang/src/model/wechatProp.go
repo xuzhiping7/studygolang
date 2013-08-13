@@ -8,16 +8,32 @@ import (
 
 //道具表
 type WechatProp struct {
-	Id       int
-	Name     string
-	Descript string
+	Id        int
+	Name      string
+	Descript  string
+	PropType  int
+	PropValue int
 }
 
-func NewWechatProp(id int, name string, descript string) *WechatProp {
+const (
+	PropType_没有任何作用 = 0
+	PropType_恢复生命值  = 1
+)
+
+/*
+PropType:
+1 --- 恢复生命值
+2 ---
+
+*/
+
+func NewWechatProp(id int, name string, descript string, propType int, propValue int) *WechatProp {
 	return &WechatProp{
-		Id:       id,
-		Name:     name,
-		Descript: descript,
+		Id:        id,
+		Name:      name,
+		Descript:  descript,
+		PropType:  propType,
+		PropValue: propValue,
 	}
 }
 
