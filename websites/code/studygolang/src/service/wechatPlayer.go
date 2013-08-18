@@ -509,7 +509,7 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 						player.CommentPrefixStr = commandPrefix[20]
 						s_ReturnContent = textTemplate["100019"]
 						for _, prop := range player.Map_PlayerProp {
-							s_ReturnContent += "\n" + fmt.Sprintf(textTemplate["100016"], Map_PropsData[prop.PropId].Name, player.Map_PlayerProp[prop.PropId].PropNum, Map_PropsData[prop.PropId].Descript, Map_PropsData[prop.PropId].OfficialWorth)
+							s_ReturnContent += "\n" + fmt.Sprintf(textTemplate["100016"], Map_PropsData[prop.PropId].Name, player.Map_PlayerProp[prop.PropId].PropNum, Map_PropsData[prop.PropId].Descript, Map_PropsData[prop.PropId].Worth)
 						}
 					} else {
 						s_ReturnContent = textTemplate["100018"]
@@ -722,23 +722,18 @@ func PlayerSellProps(player *model.WechatPlayer, propName string) (s string) {
 
 //玩家购买某个道具
 func PlayerBuyProps(player *model.WechatPlayer, propName string) (s string) {
-	propIndex, b := CheckPlayerHasProp(player, propName)
-	if b {
-		//假设够钱就买，不够钱则提示。
-		if player.Coin-Map_PropsData[propIndex].OfficialWorth >= 0 {
-			player.Coin -= Map_PropsData[propIndex].OfficialWorth
-			player.UpdateCoin()
+	//假设够钱就买，不够钱则提示。
+	if player.Coin-Map_PropsData[propIndex].OfficialWorth >= 0 {
+		player.Coin -= Map_PropsData[propIndex].OfficialWorth
+		player.UpdateCoin()
 
-			if PlayerGetProp(player, propIndex, 1) {
-				s = fmt.Sprintf(textTemplate["100023"], Map_PropsData[propIndex].OfficialWorth, propName)
-			} else {
-				s = textTemplate["900002"]
-			}
+		if PlayerGetProp(player, propIndex, 1) {
+			s = fmt.Sprintf(textTemplate["100023"], Map_PropsData[propIndex].OfficialWorth, propName)
 		} else {
-			s = fmt.Sprintf(textTemplate["100022"], Map_PropsData[propIndex].OfficialWorth, propName, player.Coin)
+			s = textTemplate["900002"]
 		}
 	} else {
-		s = fmt.Sprintf(textTemplate["100020"], propName)
+		s = fmt.Sprintf(textTemplate["100022"], Map_PropsData[propIndex].OfficialWorth, propName, player.Coin)
 	}
 	return s
 }
