@@ -1,7 +1,7 @@
 package service
 
 import (
-	//"logger"
+	"logger"
 	"math/rand"
 	"model"
 )
@@ -51,4 +51,24 @@ func CanMapPractice(mapIndex int, funcType int) (b bool) {
 	//}
 
 	return false
+}
+
+//检测该地图是否有售卖相应的物品
+func CheckMapSellProps(mapIndex int, propName string) (propId int, b bool) {
+	b = false
+	propId = -1
+	for _, v := range Map_MapData[mapIndex].SellItems {
+		propInfo, ok := Map_PropsData[v]
+		if ok {
+			if propInfo.Name == propName {
+				propId = propInfo.Id
+				b = true
+				break
+			}
+		} else {
+			logger.Debugln("CheckMapSellProps : Not find prop in Map_MapData")
+		}
+	}
+
+	return propId, b
 }

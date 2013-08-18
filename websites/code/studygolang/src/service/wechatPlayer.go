@@ -722,18 +722,23 @@ func PlayerSellProps(player *model.WechatPlayer, propName string) (s string) {
 
 //玩家购买某个道具
 func PlayerBuyProps(player *model.WechatPlayer, propName string) (s string) {
-	//假设够钱就买，不够钱则提示。
-	if player.Coin-Map_PropsData[propIndex].OfficialWorth >= 0 {
-		player.Coin -= Map_PropsData[propIndex].OfficialWorth
-		player.UpdateCoin()
+	propIndex, b := CheckMapSellProps(player.Location, propName)
+	if b {
+		//假设够钱就买，不够钱则提示。
+		if player.Coin-Map_PropsData[propIndex].OfficialWorth >= 0 {
+			player.Coin -= Map_PropsData[propIndex].OfficialWorth
+			player.UpdateCoin()
 
-		if PlayerGetProp(player, propIndex, 1) {
-			s = fmt.Sprintf(textTemplate["100023"], Map_PropsData[propIndex].OfficialWorth, propName)
+			if PlayerGetProp(player, propIndex, 1) {
+				s = fmt.Sprintf(textTemplate["100023"], Map_PropsData[propIndex].OfficialWorth, propName)
+			} else {
+				s = textTemplate["900002"]
+			}
 		} else {
-			s = textTemplate["900002"]
+			s = fmt.Sprintf(textTemplate["100022"], Map_PropsData[propIndex].OfficialWorth, propName, player.Coin)
 		}
 	} else {
-		s = fmt.Sprintf(textTemplate["100022"], Map_PropsData[propIndex].OfficialWorth, propName, player.Coin)
+		s = fmt.Sprintf(textTemplate["100025"], propName)
 	}
 	return s
 }
