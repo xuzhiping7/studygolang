@@ -3,6 +3,7 @@ package model
 import (
 	"logger"
 	"strconv"
+	"time"
 	"util"
 )
 
@@ -54,7 +55,12 @@ type WechatPlayer struct {
 	/*
 		辅助数据
 	*/
+	//当前命令前缀
 	CommentPrefixStr string
+	//玩家当前状态:0-无，1-休息
+	Status int
+	//玩家单独计时器
+	Timer *time.Ticker
 }
 
 func NewWechatPlayer() *WechatPlayer {
@@ -106,6 +112,13 @@ func (this *WechatPlayer) UpdateExp() error {
 //更新等级
 func (this *WechatPlayer) UpdateLevel() error {
 	err := this.Set("level=" + strconv.Itoa(this.Level)).Where("openid=" + this.OpenId).Update()
+	this.SetEmpty()
+	return err
+}
+
+//更新金币
+func (this *WechatPlayer) UpdateCoin() error {
+	err := this.Set("coin=" + strconv.Itoa(this.Coin)).Where("openid=" + this.OpenId).Update()
 	this.SetEmpty()
 	return err
 }

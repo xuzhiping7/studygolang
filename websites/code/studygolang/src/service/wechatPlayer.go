@@ -16,6 +16,7 @@ import (
 	"model"
 	"strconv"
 	"strings"
+	"time"
 )
 
 //储存玩家信息，24小时后删除
@@ -110,6 +111,9 @@ func init() {
 	commandPrefix[15] = "提升敏捷"
 	commandPrefix[16] = "提升智慧"
 	commandPrefix[17] = "附近"
+	commandPrefix[18] = "休息"
+	commandPrefix[19] = "买"
+	commandPrefix[20] = "卖"
 
 	//map_MapName = make(map[int]string)
 	//map_MapName[0] = "林风角酒馆"
@@ -315,7 +319,7 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 		//修炼
 		case strings.HasPrefix(content, commandPrefix[3]):
 			//查看玩家当前地点是否适合修炼
-			b_CanMapPractice := CanMapPractice(player.Location)
+			b_CanMapPractice := CanMapPractice(player.Location, model.Func_修炼)
 			if !b_CanMapPractice {
 				s_ReturnContent = textTemplate["800008"]
 				break
@@ -324,6 +328,7 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 			//查看是否有足够的行动力来执行改动作
 			temp_Str, b := PlayerCheckMobility(player, -5)
 			if b {
+				PlayerCheckStatus(player)
 				s_ReturnContent = PlayerPratctice(player) + "\n\n" + temp_Str
 			} else {
 				s_ReturnContent = temp_Str
@@ -464,6 +469,55 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 			s_ReturnContent = fmt.Sprintf(textTemplate["100001"], "智慧", point, "智慧", player.Wisdom-point, player.Wisdom)
 		case strings.HasPrefix(content, commandPrefix[17]):
 			s_ReturnContent = ShowCurMapPlayer(player.Location, player.OpenId)
+
+		case strings.HasPrefix(content, commandPrefix[18]):
+			s_ReturnContent = PlayerResting(player)
+
+		case strings.HasPrefix(content, commandPrefix[19]):
+			//如果是有前缀的，代表是直接买东西的。
+			if player.CommentPrefixStr == commandPrefix[19] {
+				player.CommentPrefixStr = ""
+				str_AimProp := strings.TrimPrefix(content, commandPrefix[19])
+				s_ReturnContent = PlayerBuyProps(player, str_AimProp)
+			} else {
+				//查看该地图是否可以进行买东西操作
+				if CanMapPractice(player.Location, model.Func_买) {
+					if len(Map_MapData[player.Location].SellItems) > 0 {
+						player.CommentPrefixStr = commandPrefix[19]
+						s_ReturnContent = textTemplate["100015"]
+						for _, propIndex := range Map_MapData[player.Location].SellItems {
+							s_ReturnContent += "\n" + fmt.Sprintf(textTemplate["100024"], Map_PropsData[propIndex].Name, Map_PropsData[propIndex].Descript, Map_PropsData[propIndex].OfficialWorth)
+						}
+					} else {
+						s_ReturnContent = textTemplate["100017"]
+					}
+				} else {
+					s_ReturnContent = textTemplate["100013"]
+				}
+			}
+		case strings.HasPrefix(content, commandPrefix[20]):
+			//如果是有前缀的，代表是直接卖东西的。
+			if player.CommentPrefixStr == commandPrefix[20] {
+				player.CommentPrefixStr = ""
+				str_AimProp := strings.TrimPrefix(content, commandPrefix[20])
+				s_ReturnContent = PlayerSellProps(player, str_AimProp)
+
+			} else {
+				//查看该地图是否可以进行卖东西操作，如果可以则输出玩家可以出售的物品
+				if CanMapPractice(player.Location, model.Func_卖) {
+					if len(player.Map_PlayerProp) > 0 {
+						player.CommentPrefixStr = commandPrefix[20]
+						s_ReturnContent = textTemplate["100019"]
+						for _, prop := range player.Map_PlayerProp {
+							s_ReturnContent += "\n" + fmt.Sprintf(textTemplate["100016"], Map_PropsData[prop.PropId].Name, player.Map_PlayerProp[prop.PropId].PropNum, Map_PropsData[prop.PropId].Descript, Map_PropsData[prop.PropId].OfficialWorth)
+						}
+					} else {
+						s_ReturnContent = textTemplate["100018"]
+					}
+				} else {
+					s_ReturnContent = textTemplate["100014"]
+				}
+			}
 		default:
 			s_ReturnContent = textTemplate["900001"]
 		}
@@ -652,6 +706,43 @@ func PlayerUseProp(player *model.WechatPlayer, propName string) (s string) {
 	return s
 }
 
+//玩家出售某个道具
+func PlayerSellProps(player *model.WechatPlayer, propName string) (s string) {
+	propIndex, b := CheckPlayerHasProp(player, propName)
+	if b {
+		player.Coin += Map_PropsData[propIndex].Worth
+		player.UpdateCoin()
+		DecreasePlayerProp(player, propIndex)
+		s = fmt.Sprintf(textTemplate["100021"], propName, Map_PropsData[propIndex].Worth, player.Coin)
+	} else {
+		s = fmt.Sprintf(textTemplate["100020"], propName)
+	}
+	return s
+}
+
+//玩家购买某个道具
+func PlayerBuyProps(player *model.WechatPlayer, propName string) (s string) {
+	propIndex, b := CheckPlayerHasProp(player, propName)
+	if b {
+		//假设够钱就买，不够钱则提示。
+		if player.Coin-Map_PropsData[propIndex].OfficialWorth >= 0 {
+			player.Coin -= Map_PropsData[propIndex].OfficialWorth
+			player.UpdateCoin()
+
+			if PlayerGetProp(player, propIndex, 1) {
+				s = fmt.Sprintf(textTemplate["100023"], Map_PropsData[propIndex].OfficialWorth, propName)
+			} else {
+				s = textTemplate["900002"]
+			}
+		} else {
+			s = fmt.Sprintf(textTemplate["100022"], Map_PropsData[propIndex].OfficialWorth, propName, player.Coin)
+		}
+	} else {
+		s = fmt.Sprintf(textTemplate["100020"], propName)
+	}
+	return s
+}
+
 //减少玩家某个道具
 func DecreasePlayerProp(player *model.WechatPlayer, prop int) {
 	player.Map_PlayerProp[prop].PropNum -= 1
@@ -680,4 +771,46 @@ func ShowCurMapPlayer(mapId int, playerOpenId string) (s string) {
 	}
 
 	return s
+}
+
+//玩家进入休息状态
+func PlayerResting(player *model.WechatPlayer) (s string) {
+
+	if player.Status == 1 {
+		s = textTemplate["100012"]
+		return s
+	} else {
+		player.Status = 1
+	}
+	player.Timer = time.NewTicker(time.Minute)
+	go func() {
+		for {
+			select {
+			case <-player.Timer.C:
+				if player.Cur_HP <= player.Max_HP {
+					player.Cur_HP++
+				}
+
+				if player.Cur_Mobility <= player.Mobility {
+					player.Cur_Mobility++
+				}
+				logger.Debugln("Player Name:" + player.NickName + " PlayerHp:" + strconv.Itoa(player.Cur_HP) + " PlayerMobility:" + strconv.Itoa(player.Cur_Mobility))
+
+				if player.Cur_HP >= player.Max_HP && player.Cur_Mobility >= player.Mobility {
+					player.Timer.Stop()
+				}
+			}
+		}
+	}()
+
+	s = textTemplate["100011"]
+	return s
+}
+
+//查看玩家是否有持续性的状态，若有则打断
+func PlayerCheckStatus(player *model.WechatPlayer) {
+	if player.Status == 1 {
+		player.Status = 0
+		player.Timer.Stop()
+	}
 }
