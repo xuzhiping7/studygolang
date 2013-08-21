@@ -114,6 +114,7 @@ func init() {
 	commandPrefix[18] = "休息"
 	commandPrefix[19] = "买"
 	commandPrefix[20] = "卖"
+	commandPrefix[21] = "挑战"
 
 	//map_MapName = make(map[int]string)
 	//map_MapName[0] = "林风角酒馆"
@@ -264,7 +265,7 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 		//我
 		case strings.HasPrefix(content, commandPrefix[0]):
 
-			s_ReturnContent = fmt.Sprintf(textTemplate["6"], player.NickName, Map_MapData[player.Location].Name, player.Level, player.Exp, 100, player.Cur_Mobility, player.Mobility, player.Reputation, player.Coin, player.Cur_HP, player.Max_HP, player.Cur_Burden, player.Max_Burden, player.Cur_Resistance, player.Attack, player.Defense, player.Stamina, player.Agility, player.Wisdom, player.NoDistribution)
+			s_ReturnContent = fmt.Sprintf(textTemplate["6"], player.NickName, Map_MapData[player.Location].Name, player.Level, player.Exp, LevelsExp[player.Level], player.Cur_Mobility, player.Mobility, player.Reputation, player.Coin, player.Cur_HP, player.Max_HP, player.Cur_Burden, player.Max_Burden, player.Cur_Resistance, player.Attack, player.Defense, player.Stamina, player.Agility, player.Wisdom, player.NoDistribution)
 			//logger.Debugln(s_ReturnContent)
 		case strings.HasPrefix(content, commandPrefix[1]):
 
@@ -495,6 +496,7 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 					s_ReturnContent = textTemplate["100013"]
 				}
 			}
+		//卖东西
 		case strings.HasPrefix(content, commandPrefix[20]):
 			//如果是有前缀的，代表是直接卖东西的。
 			if player.CommentPrefixStr == commandPrefix[20] {
@@ -516,6 +518,30 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 					}
 				} else {
 					s_ReturnContent = textTemplate["100014"]
+				}
+			}
+		//挑战玩家
+		case strings.HasPrefix(content, commandPrefix[21]):
+
+			str_AimPlayerNickName := strings.TrimPrefix(content, commandPrefix[21])
+
+			//判断输入的是否自己的昵称
+			if str_AimPlayerNickName == player.NickName {
+				s_ReturnContent = textTemplate["800015"]
+			} else {
+				//获取同地图的某玩家
+				targetOpenId, ok := GetPlayerOpenIdByNameAndMapId(str_AimPlayerNickName, player.Location)
+
+				if ok {
+					b_Win, _ := Player_VS_Player(player, map_PlayerData[targetOpenId])
+
+					if b_Win {
+						s_ReturnContent = fmt.Sprintf(textTemplate["800013"], map_PlayerData[targetOpenId].NickName, map_PlayerData[targetOpenId].NickName)
+					} else {
+						s_ReturnContent = fmt.Sprintf(textTemplate["800014"], map_PlayerData[targetOpenId].NickName, map_PlayerData[targetOpenId].NickName, Map_MapData[player.Location].Name)
+					}
+				} else {
+					s_ReturnContent = fmt.Sprintf(textTemplate["800012"], Map_MapData[player.Location].Name, str_AimPlayerNickName)
 				}
 			}
 		default:
@@ -559,9 +585,10 @@ func PlayerPratctice(player *model.WechatPlayer) (s string) {
 		}
 
 		player.Exp += Map_MonsterData[mosterIndex].Exp
+
 		//假设升级就减少经验
-		if player.Exp > 100 {
-			player.Exp -= 100
+		if player.Level < len(LevelsExp) && player.Exp > LevelsExp[player.Level] {
+			player.Exp -= LevelsExp[player.Level]
 
 			player.Level++
 			player.UpdateLevel()
@@ -573,8 +600,11 @@ func PlayerPratctice(player *model.WechatPlayer) (s string) {
 		}
 		player.UpdateExp()
 	} else {
-		s = fmt.Sprintf(textTemplate["800004"], Map_MapData[player.Location].Name, Map_MonsterData[mosterIndex].Name)
+		s = fmt.Sprintf(textTemplate["800004"], Map_MapData[player.Location].Name, Map_MonsterData[mosterIndex].Name, Map_MapData[1].Name)
 		s += "\n\n" + fmt.Sprintf(textTemplate["800005"], HPLoss, player.Cur_HP, player.Max_HP)
+
+		//死亡回城
+		PlayerGoBackHomeTown(player)
 	}
 
 	return s
@@ -787,11 +817,11 @@ func PlayerResting(player *model.WechatPlayer) (s string) {
 		for {
 			select {
 			case <-player.Timer.C:
-				if player.Cur_HP <= player.Max_HP {
+				if player.Cur_HP < player.Max_HP {
 					player.Cur_HP++
 				}
 
-				if player.Cur_Mobility <= player.Mobility {
+				if player.Cur_Mobility < player.Mobility {
 					player.Cur_Mobility++
 				}
 				logger.Debugln("Player Name:" + player.NickName + " PlayerHp:" + strconv.Itoa(player.Cur_HP) + " PlayerMobility:" + strconv.Itoa(player.Cur_Mobility))
@@ -813,4 +843,75 @@ func PlayerCheckStatus(player *model.WechatPlayer) {
 		player.Status = 0
 		player.Timer.Stop()
 	}
+}
+
+//玩家与玩家对战，一方失败位置，扣血量为玩家。死亡的玩家回城。
+func Player_VS_Player(me *model.WechatPlayer, target *model.WechatPlayer) (b_Win bool, HPLoss int) {
+	//初始化
+	HPLoss = 0
+	b_Win = false
+
+	//自己的攻击倍率
+	rate := me.Agility / target.Agility
+
+	//自己的DPS
+	meHurt := (me.Attack - target.Defense) * rate
+	if meHurt <= 0 {
+		meHurt = 1
+	}
+
+	//对方的DPS
+	targetHurt := target.Attack - me.Defense
+	if targetHurt <= 0 {
+		targetHurt = 1
+	}
+
+	meDPSTime := target.Cur_HP / meHurt
+	targetDPSTime := me.Cur_HP / targetHurt
+
+	//logger.Debugln(meHurt)
+	//logger.Debugln(targetHurt)
+	//logger.Debugln(meDPSTime)
+	//logger.Debugln(targetDPSTime)
+
+	if meDPSTime <= targetDPSTime {
+
+		HPLoss = meDPSTime * targetHurt
+		me.Cur_HP -= HPLoss
+
+		target.Cur_HP = 0
+		PlayerGoBackHomeTown(target)
+
+		b_Win = true
+	} else {
+
+		HPLoss = targetDPSTime * meHurt
+		target.Cur_HP -= HPLoss
+
+		me.Cur_HP = 0
+		PlayerGoBackHomeTown(me)
+
+		b_Win = false
+	}
+
+	return b_Win, HPLoss
+}
+
+//玩家回城
+func PlayerGoBackHomeTown(player *model.WechatPlayer) {
+	player.Location = 1
+	player.UpdateLocation()
+}
+
+//根据昵称，获取在某地图上的玩家ID。
+func GetPlayerOpenIdByNameAndMapId(playerName string, curMapId int) (playerOpenId string, b bool) {
+	playerOpenId = ""
+	b = false
+	for _, v := range map_PlayerData {
+		if v.Location == curMapId && v.NickName == playerName {
+			playerOpenId = v.OpenId
+			b = true
+		}
+	}
+	return
 }
