@@ -115,7 +115,7 @@ func init() {
 	commandPrefix[19] = "买"
 	commandPrefix[20] = "卖"
 	commandPrefix[21] = "挑战"
-
+	commandPrefix[22] = "确认洗点"
 	//map_MapName = make(map[int]string)
 	//map_MapName[0] = "林风角酒馆"
 	//map_MapName[1] = "林风角"
@@ -284,13 +284,19 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 					}
 
 					b_Match = true
-					player.Location = k
 
-					s_ReturnContent = fmt.Sprintf(textTemplate["800009"], v.Name, Map_MapData[player.Location].MapDescript)
+					if v.Level <= player.Level {
 
-					if err := player.UpdateLocation(); err != nil {
-						logger.Errorln("service wechat UpdateLocation Error:", err)
-						s_ReturnContent = textTemplate["100"]
+						player.Location = k
+
+						s_ReturnContent = fmt.Sprintf(textTemplate["800009"], v.Name, Map_MapData[player.Location].MapDescript)
+
+						if err := player.UpdateLocation(); err != nil {
+							logger.Errorln("service wechat UpdateLocation Error:", err)
+							s_ReturnContent = textTemplate["100"]
+						}
+					} else {
+						s_ReturnContent = fmt.Sprintf(textTemplate["100028"], v.Level)
 					}
 
 					break
@@ -309,7 +315,9 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 
 					s_ReturnContent += textTemplate["10"]
 					for _, v := range Map_MapData {
-						s_ReturnContent += v.Name + "\n"
+						if v.Level <= player.Level {
+							s_ReturnContent += v.Name + "\n"
+						}
 					}
 					player.CommentPrefixStr = commandPrefix[2]
 				}
@@ -389,6 +397,7 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 			str := strings.TrimPrefix(content, commandPrefix[13])
 			point1, err := strconv.ParseInt(str, 10, 32)
 			point := int(point1)
+
 			if err != nil {
 				logger.Errorln(err)
 				s_ReturnContent = textTemplate["900001"]
@@ -402,6 +411,11 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 
 			player.Stamina += point
 			player.NoDistribution -= point
+
+			player.Max_HP += point * 10
+			player.Cur_Resistance += point
+			player.Max_Burden += point * 5
+
 			player.UpdateNoDistribution()
 			player.UpdateAttributes()
 
@@ -425,6 +439,9 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 
 			player.Defense += point
 			player.NoDistribution -= point
+
+			player.Cur_Resistance += point * 3
+
 			player.UpdateNoDistribution()
 			player.UpdateAttributes()
 
@@ -447,6 +464,7 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 			player.Agility += point
 			player.NoDistribution -= point
 			s_ReturnContent = fmt.Sprintf(textTemplate["100001"], "敏捷", point, "敏捷", player.Agility-point, player.Agility)
+
 		//提升智慧
 		case strings.HasPrefix(content, commandPrefix[16]):
 			player.CommentPrefixStr = ""
@@ -464,6 +482,8 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 			}
 			player.Wisdom += point
 			player.NoDistribution -= point
+			player.Cur_Resistance += point * 3
+
 			player.UpdateNoDistribution()
 			player.UpdateAttributes()
 
@@ -544,6 +564,10 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 					s_ReturnContent = fmt.Sprintf(textTemplate["800012"], Map_MapData[player.Location].Name, str_AimPlayerNickName)
 				}
 			}
+		//我确认洗点
+		case strings.HasPrefix(content, commandPrefix[22]):
+			//所有属性重置为5点
+			s_ReturnContent = PlayerRedistributeAttribute(player)
 		default:
 			s_ReturnContent = textTemplate["900001"]
 		}
@@ -723,6 +747,15 @@ func PlayerUseProp(player *model.WechatPlayer, propName string) (s string) {
 				player.Cur_HP = player.Max_HP
 			}
 			s = fmt.Sprintf(textTemplate["100008"], targetProp.Name, addpoint, player.Cur_HP, player.Max_HP)
+		case model.PropType_恢复行动力:
+			addpoint := targetProp.PropValue
+			player.Cur_Mobility += targetProp.PropValue
+
+			if player.Cur_Mobility > player.Mobility {
+				addpoint = targetProp.PropValue - (player.Cur_Mobility - player.Mobility)
+				player.Cur_Mobility = player.Mobility
+			}
+			s = fmt.Sprintf(textTemplate["100026"], targetProp.Name, addpoint, player.Cur_Mobility, player.Mobility)
 
 		default:
 			s = textTemplate["100010"]
@@ -914,4 +947,31 @@ func GetPlayerOpenIdByNameAndMapId(playerName string, curMapId int) (playerOpenI
 		}
 	}
 	return
+}
+
+//玩家重新分配点数，洗点
+func PlayerRedistributeAttribute(player *model.WechatPlayer) (s string) {
+	player.Agility = 5
+	player.Defense = 5
+	player.Agility = 5
+	player.Stamina = 5
+	player.Wisdom = 5
+
+	player.UpdateAttributes()
+
+	player.NoDistribution = player.Level * 3
+	player.UpdateNoDistribution()
+
+	player.Max_HP = player.Stamina * 10
+
+	if player.Cur_HP > player.Stamina*10 {
+		player.Cur_HP = player.Stamina * 10
+	}
+
+	player.Cur_Resistance = player.Stamina + player.Defense*3 + player.Wisdom*3
+	player.Max_Burden = player.Stamina * 5
+	player.Cur_Burden = 0
+
+	s = textTemplate["100027"]
+	return s
 }

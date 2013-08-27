@@ -20,6 +20,7 @@ type WechatProp struct {
 const (
 	PropType_没有任何作用 = 0
 	PropType_恢复生命值  = 1
+	PropType_恢复行动力  = 2
 )
 
 /*

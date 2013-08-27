@@ -10,10 +10,10 @@ var Map_PropsData map[int]*model.WechatProp
 
 func init() {
 	Map_PropsData = make(map[int]*model.WechatProp)
-	Map_PropsData[1] = model.NewWechatProp(1, "止血草", "使用能够回复生命值20点。", 5, 10, 1, 20)
-	Map_PropsData[2] = model.NewWechatProp(2, "风信子", "一级素材，可以卖给商人。", 10, 15, 0, 0)
-	Map_PropsData[3] = model.NewWechatProp(3, "结实黄泥", "一级素材，可以卖给商人。", 10, 15, 0, 0)
-
+	Map_PropsData[1] = model.NewWechatProp(1, "止血草", "使用能够回复生命值20点。", 5, 10, model.PropType_恢复生命值, 20)
+	Map_PropsData[2] = model.NewWechatProp(2, "风信子", "一级素材，可以卖给商人。", 10, 15, model.PropType_没有任何作用, 0)
+	Map_PropsData[3] = model.NewWechatProp(3, "结实黄泥", "一级素材，可以卖给商人。", 10, 15, model.PropType_没有任何作用, 0)
+	Map_PropsData[4] = model.NewWechatProp(4, "清魂酒", "使用能够回复行动力20点。", 10, 15, model.PropType_恢复行动力, 20)
 	//logger.Debugln(map_MapData["2"])
 }
 

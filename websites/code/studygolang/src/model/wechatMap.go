@@ -4,6 +4,7 @@ type WechatMap struct {
 	Id          int
 	Name        string
 	MapDescript string
+	Level       int
 	Mosters     []int
 	MostersRate []int
 	Functions   []int
@@ -16,11 +17,12 @@ const (
 	Func_卖  = 3
 )
 
-func NewWechatMap(id int, name string, mapDescript string, mosters []int, mostersRate []int, functions []int, sellItems []int) *WechatMap {
+func NewWechatMap(id int, name string, mapDescript string, level int, mosters []int, mostersRate []int, functions []int, sellItems []int) *WechatMap {
 	return &WechatMap{
 		Id:          id,
 		Name:        name,
 		MapDescript: mapDescript,
+		Level:       level,
 		Mosters:     mosters,
 		MostersRate: mostersRate,
 		Functions:   functions,
