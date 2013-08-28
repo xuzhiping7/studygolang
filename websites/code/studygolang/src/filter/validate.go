@@ -9,7 +9,7 @@ package filter
 import (
 	"fmt"
 	"github.com/studygolang/mux"
-	"logger"
+	//"logger"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -31,7 +31,11 @@ func (this *FormValidateFilter) PreFilter(rw http.ResponseWriter, req *http.Requ
 	}
 	// 验证表单
 	errMsg := Validate(req.Form, Rule(uri))
-	logger.Debugln("validate:", errMsg)
+
+	//xuzhiping mark and change
+	//logger.Debugln("validate:", errMsg)
+	//logger.Errorf("validate:", errMsg)
+
 	// 验证失败
 	// TODO:暂时规定，要验证的表单提交都采用异步方式，期望返回json数据
 	if errMsg != "" {

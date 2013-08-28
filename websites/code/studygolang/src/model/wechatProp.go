@@ -21,6 +21,7 @@ const (
 	PropType_没有任何作用 = 0
 	PropType_恢复生命值  = 1
 	PropType_恢复行动力  = 2
+	PropType_角色昵称更改 = 3
 )
 
 /*

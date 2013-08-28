@@ -155,6 +155,12 @@ func GetWechatPlayer(openid string) (player *model.WechatPlayer) {
 	}
 	//logger.Debugln(player)
 
+	//属性配点正确性验证
+	if player.Attack+player.Agility+player.Wisdom+player.Stamina+player.Defense+player.NoDistribution > player.Level*3+25 {
+		PlayerRedistributeAttribute(player)
+		logger.Errorln("玩家数据异常，请查看玩家昵称：" + player.NickName + "  ID:" + strconv.Itoa(player.Id))
+	}
+
 	//初始化动态信息
 	InitPlayerProp(player)
 
@@ -164,6 +170,7 @@ func GetWechatPlayer(openid string) (player *model.WechatPlayer) {
 	player.Cur_Resistance = player.Stamina + player.Defense*3 + player.Wisdom*3
 	player.Max_Burden = player.Stamina * 5
 	player.Cur_Burden = 0
+
 	return player
 }
 
@@ -239,7 +246,7 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 	case flag_用户传入角色名申请更名操作:
 		player.Flag = flag_用户传入角色名申请更名操作
 		runes := []rune(content)
-		if len(runes) > 8 {
+		if len(runes) > 8 || len(runes) < 2 {
 			s_ReturnContent = textTemplate["4"]
 		} else {
 			player.NickName = content
@@ -756,7 +763,9 @@ func PlayerUseProp(player *model.WechatPlayer, propName string) (s string) {
 				player.Cur_Mobility = player.Mobility
 			}
 			s = fmt.Sprintf(textTemplate["100026"], targetProp.Name, addpoint, player.Cur_Mobility, player.Mobility)
-
+		case model.PropType_角色昵称更改:
+			player.Flag = flag_用户传入角色名申请更名操作
+			s = textTemplate["100029"]
 		default:
 			s = textTemplate["100010"]
 		}
@@ -798,7 +807,7 @@ func PlayerBuyProps(player *model.WechatPlayer, propName string) (s string) {
 				s = textTemplate["900002"]
 			}
 		} else {
-			s = fmt.Sprintf(textTemplate["100022"], Map_PropsData[propIndex].OfficialWorth, propName, player.Coin)
+			s = fmt.Sprintf(textTemplate["100022"], propName, player.Coin, Map_PropsData[propIndex].OfficialWorth)
 		}
 	} else {
 		s = fmt.Sprintf(textTemplate["100025"], propName)
@@ -885,22 +894,22 @@ func Player_VS_Player(me *model.WechatPlayer, target *model.WechatPlayer) (b_Win
 	b_Win = false
 
 	//自己的攻击倍率
-	rate := me.Agility / target.Agility
+	rate := float32(me.Agility) / float32(target.Agility)
 
 	//自己的DPS
-	meHurt := (me.Attack - target.Defense) * rate
-	if meHurt <= 0 {
-		meHurt = 1
+	meHurt := (float32(me.Attack) - float32(target.Defense)) * rate
+	if meHurt <= 0.0 {
+		meHurt = 1.0
 	}
 
 	//对方的DPS
-	targetHurt := target.Attack - me.Defense
-	if targetHurt <= 0 {
-		targetHurt = 1
+	targetHurt := float32(target.Attack) - float32(me.Defense)
+	if targetHurt <= 0.0 {
+		targetHurt = 1.0
 	}
 
-	meDPSTime := target.Cur_HP / meHurt
-	targetDPSTime := me.Cur_HP / targetHurt
+	meDPSTime := float32(target.Cur_HP) / meHurt
+	targetDPSTime := float32(me.Cur_HP) / targetHurt
 
 	//logger.Debugln(meHurt)
 	//logger.Debugln(targetHurt)
@@ -909,7 +918,7 @@ func Player_VS_Player(me *model.WechatPlayer, target *model.WechatPlayer) (b_Win
 
 	if meDPSTime <= targetDPSTime {
 
-		HPLoss = meDPSTime * targetHurt
+		HPLoss = int(meDPSTime * targetHurt)
 		me.Cur_HP -= HPLoss
 
 		target.Cur_HP = 0
@@ -918,7 +927,7 @@ func Player_VS_Player(me *model.WechatPlayer, target *model.WechatPlayer) (b_Win
 		b_Win = true
 	} else {
 
-		HPLoss = targetDPSTime * meHurt
+		HPLoss = int(targetDPSTime * meHurt)
 		target.Cur_HP -= HPLoss
 
 		me.Cur_HP = 0
@@ -951,7 +960,7 @@ func GetPlayerOpenIdByNameAndMapId(playerName string, curMapId int) (playerOpenI
 
 //玩家重新分配点数，洗点
 func PlayerRedistributeAttribute(player *model.WechatPlayer) (s string) {
-	player.Agility = 5
+	player.Attack = 5
 	player.Defense = 5
 	player.Agility = 5
 	player.Stamina = 5
