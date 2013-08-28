@@ -807,7 +807,7 @@ func PlayerBuyProps(player *model.WechatPlayer, propName string) (s string) {
 				s = textTemplate["900002"]
 			}
 		} else {
-			s = fmt.Sprintf(textTemplate["100022"], propName, player.Coin, Map_PropsData[propIndex].OfficialWorth)
+			s = fmt.Sprintf(textTemplate["100022"], player.Coin, propName, Map_PropsData[propIndex].OfficialWorth)
 		}
 	} else {
 		s = fmt.Sprintf(textTemplate["100025"], propName)
