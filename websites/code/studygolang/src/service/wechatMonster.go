@@ -16,7 +16,10 @@ func init() {
 
 	Map_MonsterData[0] = model.NewWechatMonster(0, "风铃怪", 15, 2, 2, 4, 1, 1, []int{1, 2}, []int{30, 30})
 	Map_MonsterData[1] = model.NewWechatMonster(1, "泥巴怪", 15, 3, 4, 1, 4, 2, []int{1, 3}, []int{20, 40})
-	Map_MonsterData[2] = model.NewWechatMonster(2, "浪鱼妖", 50, 10, 5, 5, 4, 10, []int{1}, []int{50})
+	Map_MonsterData[2] = model.NewWechatMonster(2, "浪鱼妖", 60, 10, 5, 5, 4, 7, []int{1}, []int{50})
+	Map_MonsterData[3] = model.NewWechatMonster(3, "流放罪犯", 70, 15, 6, 6, 5, 10, []int{1}, []int{50})
+	Map_MonsterData[4] = model.NewWechatMonster(4, "雾虎", 120, 15, 15, 10, 10, 15, []int{1}, []int{50})
+	Map_MonsterData[5] = model.NewWechatMonster(5, "无首巨鹰", 100, 20, 10, 15, 15, 15, []int{1}, []int{50})
 }
 
 //一个玩家与一个怪物对战情况
@@ -26,22 +29,22 @@ func Player_VS_Moster(player *model.WechatPlayer, mosterIndex int) (b_Win bool, 
 	b_Win = false
 
 	//玩家的攻击倍率
-	rate := player.Agility / Map_MonsterData[mosterIndex].Agility
+	rate := float32(player.Agility) / float32(Map_MonsterData[mosterIndex].Agility)
 
 	//玩家的DPS
-	playerHurt := (player.Attack - Map_MonsterData[mosterIndex].Defense) * rate
-	if playerHurt <= 0 {
-		playerHurt = 1
+	playerHurt := float32((player.Attack - Map_MonsterData[mosterIndex].Defense)) * rate
+	if playerHurt <= 1.0 {
+		playerHurt = 1.0
 	}
 
 	//怪物的DPS
-	mosterHurt := Map_MonsterData[mosterIndex].Attack - player.Defense
-	if mosterHurt <= 0 {
-		mosterHurt = 1
+	mosterHurt := float32(Map_MonsterData[mosterIndex].Attack - player.Defense)
+	if mosterHurt <= 1.0 {
+		mosterHurt = 1.0
 	}
 
-	playerDPSTime := Map_MonsterData[mosterIndex].HP / playerHurt
-	mosterDPSTime := player.Cur_HP / mosterHurt
+	playerDPSTime := float32(Map_MonsterData[mosterIndex].HP) / playerHurt
+	mosterDPSTime := float32(player.Cur_HP) / mosterHurt
 
 	//logger.Debugln(playerHurt)
 	//logger.Debugln(mosterHurt)
@@ -49,7 +52,7 @@ func Player_VS_Moster(player *model.WechatPlayer, mosterIndex int) (b_Win bool, 
 	//logger.Debugln(mosterDPSTime)
 
 	if playerDPSTime <= mosterDPSTime {
-		HPLoss = playerDPSTime * mosterHurt
+		HPLoss = int(playerDPSTime * mosterHurt)
 		player.Cur_HP -= HPLoss
 		b_Win = true
 	} else {

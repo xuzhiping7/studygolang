@@ -57,6 +57,10 @@ type WechatPlayer struct {
 	*/
 	//当前命令前缀
 	CommentPrefixStr string
+	//当前前置事件提醒，例如被挑战
+	ReplyPreifixStr string
+	//玩家历史事件记录
+	RecordEvent *WechatPlayerRecord
 	//玩家当前状态:0-无，1-休息
 	Status int
 	//玩家单独计时器

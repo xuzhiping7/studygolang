@@ -116,6 +116,7 @@ func init() {
 	commandPrefix[20] = "卖"
 	commandPrefix[21] = "挑战"
 	commandPrefix[22] = "确认洗点"
+	commandPrefix[23] = "事件"
 	//map_MapName = make(map[int]string)
 	//map_MapName[0] = "林风角酒馆"
 	//map_MapName[1] = "林风角"
@@ -170,6 +171,8 @@ func GetWechatPlayer(openid string) (player *model.WechatPlayer) {
 	player.Cur_Resistance = player.Stamina + player.Defense*3 + player.Wisdom*3
 	player.Max_Burden = player.Stamina * 5
 	player.Cur_Burden = 0
+	player.ReplyPreifixStr = ""
+	player.RecordEvent = model.NewWechatPlayerRecord()
 
 	return player
 }
@@ -187,7 +190,6 @@ func InitPlayerProp(player *model.WechatPlayer) {
 			player.Map_PlayerProp[prop.PropId] = prop
 		}
 	}
-
 }
 
 // 判断该OpenID是否已经被注册了
@@ -278,7 +280,9 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 
 		//前往
 		case strings.HasPrefix(content, commandPrefix[2]):
-			str_AimMap := strings.TrimPrefix(content, commandPrefix[2])
+			//str_AimMap := strings.TrimPrefix(content, commandPrefix[2])
+
+			str_AimMap := strings.Replace(content, commandPrefix[2], "", -1)
 
 			b_Match := false
 
@@ -297,6 +301,9 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 						player.Location = k
 
 						s_ReturnContent = fmt.Sprintf(textTemplate["800009"], v.Name, Map_MapData[player.Location].MapDescript)
+
+						//记录玩家前往事件
+						player.RecordEvent.AddRecord(fmt.Sprintf(textTemplate["200001"], v.Name))
 
 						if err := player.UpdateLocation(); err != nil {
 							logger.Errorln("service wechat UpdateLocation Error:", err)
@@ -344,6 +351,9 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 			//查看是否有足够的行动力来执行改动作
 			temp_Str, b := PlayerCheckMobility(player, -5)
 			if b {
+				//记录玩家修炼事件
+				player.RecordEvent.AddRecord(fmt.Sprintf(textTemplate["200002"], Map_MapData[player.Location].Name))
+
 				PlayerCheckStatus(player)
 				s_ReturnContent = PlayerPratctice(player) + "\n\n" + temp_Str
 			} else {
@@ -495,10 +505,13 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 			player.UpdateAttributes()
 
 			s_ReturnContent = fmt.Sprintf(textTemplate["100001"], "智慧", point, "智慧", player.Wisdom-point, player.Wisdom)
+		//显示当前所在地图所有玩家
 		case strings.HasPrefix(content, commandPrefix[17]):
 			s_ReturnContent = ShowCurMapPlayer(player.Location, player.OpenId)
 
+		//进入休息状态
 		case strings.HasPrefix(content, commandPrefix[18]):
+
 			s_ReturnContent = PlayerResting(player)
 
 		case strings.HasPrefix(content, commandPrefix[19]):
@@ -570,15 +583,30 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 				} else {
 					s_ReturnContent = fmt.Sprintf(textTemplate["800012"], Map_MapData[player.Location].Name, str_AimPlayerNickName)
 				}
+
+				//记录玩家事件
+				player.RecordEvent.AddRecord(s_ReturnContent)
 			}
 		//我确认洗点
 		case strings.HasPrefix(content, commandPrefix[22]):
 			//所有属性重置为5点
 			s_ReturnContent = PlayerRedistributeAttribute(player)
+
+		//事件
+		case strings.HasPrefix(content, commandPrefix[23]):
+			s_ReturnContent = player.RecordEvent.GetAllRecord()
+			if s_ReturnContent == "" {
+				s_ReturnContent = textTemplate["200007"]
+			}
 		default:
 			s_ReturnContent = textTemplate["900001"]
 		}
 
+	}
+
+	if player.ReplyPreifixStr != "" {
+		s_ReturnContent = AddReplyPrefix(s_ReturnContent, player.ReplyPreifixStr)
+		PlayerClearReplyPrefix(player)
 	}
 
 	return s_ReturnContent
@@ -772,6 +800,10 @@ func PlayerUseProp(player *model.WechatPlayer, propName string) (s string) {
 
 		//减少道具
 		DecreasePlayerProp(player, targetProp.Id)
+
+		//记录玩家修炼事件
+		player.RecordEvent.AddRecord(fmt.Sprintf(textTemplate["200006"], targetProp.Name))
+
 	} else {
 		s = textTemplate["900002"]
 	}
@@ -786,6 +818,8 @@ func PlayerSellProps(player *model.WechatPlayer, propName string) (s string) {
 		player.UpdateCoin()
 		DecreasePlayerProp(player, propIndex)
 		s = fmt.Sprintf(textTemplate["100021"], propName, Map_PropsData[propIndex].Worth, player.Coin)
+		//记录玩家事件
+		player.RecordEvent.AddRecord(fmt.Sprintf(textTemplate["200004"], Map_MapData[player.Location].Name, propName))
 	} else {
 		s = fmt.Sprintf(textTemplate["100020"], propName)
 	}
@@ -800,6 +834,9 @@ func PlayerBuyProps(player *model.WechatPlayer, propName string) (s string) {
 		if player.Coin-Map_PropsData[propIndex].OfficialWorth >= 0 {
 			player.Coin -= Map_PropsData[propIndex].OfficialWorth
 			player.UpdateCoin()
+
+			//记录玩家事件
+			player.RecordEvent.AddRecord(fmt.Sprintf(textTemplate["200003"], Map_MapData[player.Location].Name, propName))
 
 			if PlayerGetProp(player, propIndex, 1) {
 				s = fmt.Sprintf(textTemplate["100023"], Map_PropsData[propIndex].OfficialWorth, propName)
@@ -853,6 +890,8 @@ func PlayerResting(player *model.WechatPlayer) (s string) {
 		return s
 	} else {
 		player.Status = 1
+		//记录玩家事件
+		player.RecordEvent.AddRecord(textTemplate["200005"])
 	}
 	player.Timer = time.NewTicker(time.Minute)
 	go func() {
@@ -866,7 +905,7 @@ func PlayerResting(player *model.WechatPlayer) (s string) {
 				if player.Cur_Mobility < player.Mobility {
 					player.Cur_Mobility++
 				}
-				logger.Debugln("Player Name:" + player.NickName + " PlayerHp:" + strconv.Itoa(player.Cur_HP) + " PlayerMobility:" + strconv.Itoa(player.Cur_Mobility))
+				//logger.Debugln("Player Name:" + player.NickName + " PlayerHp:" + strconv.Itoa(player.Cur_HP) + " PlayerMobility:" + strconv.Itoa(player.Cur_Mobility))
 
 				if player.Cur_HP >= player.Max_HP && player.Cur_Mobility >= player.Mobility {
 					player.Timer.Stop()
@@ -923,6 +962,7 @@ func Player_VS_Player(me *model.WechatPlayer, target *model.WechatPlayer) (b_Win
 
 		target.Cur_HP = 0
 		PlayerGoBackHomeTown(target)
+		PlayerAddReplyPrefix(target, fmt.Sprintf(textTemplate["800016"], me.NickName, me.NickName, Map_MapData[target.Location].Name))
 
 		b_Win = true
 	} else {
@@ -932,6 +972,7 @@ func Player_VS_Player(me *model.WechatPlayer, target *model.WechatPlayer) (b_Win
 
 		me.Cur_HP = 0
 		PlayerGoBackHomeTown(me)
+		PlayerAddReplyPrefix(target, fmt.Sprintf(textTemplate["800017"], me.NickName, me.NickName, HPLoss))
 
 		b_Win = false
 	}
@@ -983,4 +1024,21 @@ func PlayerRedistributeAttribute(player *model.WechatPlayer) (s string) {
 
 	s = textTemplate["100027"]
 	return s
+}
+
+//玩家添加前置提醒
+func PlayerAddReplyPrefix(player *model.WechatPlayer, s string) {
+	player.ReplyPreifixStr += time.Now().Format("[01.02 15:04]") + s + "\n\n"
+	player.RecordEvent.AddRecord(s)
+}
+
+//玩家的回复增加前置提醒
+func AddReplyPrefix(origin string, add string) (s string) {
+	s = add + origin
+	return s
+}
+
+//清除玩家前置提醒
+func PlayerClearReplyPrefix(player *model.WechatPlayer) {
+	player.ReplyPreifixStr = ""
 }
