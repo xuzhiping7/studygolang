@@ -115,12 +115,8 @@ func init() {
 	commandPrefix[19] = "买"
 	commandPrefix[20] = "卖"
 	commandPrefix[21] = "挑战"
-	commandPrefix[22] = "确认洗点"
+	//commandPrefix[22] = "确认洗点"
 	commandPrefix[23] = "事件"
-	//map_MapName = make(map[int]string)
-	//map_MapName[0] = "林风角酒馆"
-	//map_MapName[1] = "林风角"
-	//map_MapName[2] = "林风南海岸"
 }
 
 // 创建一个wechat玩家
