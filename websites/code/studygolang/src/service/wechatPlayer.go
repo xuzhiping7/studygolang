@@ -585,9 +585,11 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 				player.RecordEvent.AddRecord(s_ReturnContent)
 			}
 		//我确认洗点
-		case strings.HasPrefix(content, commandPrefix[22]):
-			//所有属性重置为5点
-			s_ReturnContent = PlayerRedistributeAttribute(player)
+		/*
+			case strings.HasPrefix(content, commandPrefix[22]):
+				//所有属性重置为5点
+				s_ReturnContent = PlayerRedistributeAttribute(player)
+		*/
 
 		//事件
 		case strings.HasPrefix(content, commandPrefix[23]):
