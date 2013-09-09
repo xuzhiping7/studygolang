@@ -22,6 +22,7 @@ const (
 	PropType_恢复生命值  = 1
 	PropType_恢复行动力  = 2
 	PropType_角色昵称更改 = 3
+	PropType_角色确认洗点 = 4
 )
 
 /*

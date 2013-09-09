@@ -20,6 +20,7 @@ func init() {
 	Map_MonsterData[3] = model.NewWechatMonster(3, "流放罪犯", 70, 15, 6, 6, 5, 10, []int{1}, []int{50})
 	Map_MonsterData[4] = model.NewWechatMonster(4, "雾虎", 120, 15, 15, 10, 10, 15, []int{1}, []int{50})
 	Map_MonsterData[5] = model.NewWechatMonster(5, "无首巨鹰", 100, 20, 10, 15, 15, 15, []int{1}, []int{50})
+	Map_MonsterData[6] = model.NewWechatMonster(6, "临界使者（BOSS）", 300, 20, 20, 15, 15, 15, []int{1}, []int{50})
 }
 
 //一个玩家与一个怪物对战情况

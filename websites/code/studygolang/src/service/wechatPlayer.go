@@ -276,8 +276,9 @@ func WechatResponseHandle(openid string, content string) (s_ReturnContent string
 
 			s_ReturnContent = fmt.Sprintf(textTemplate["6"], player.NickName, Map_MapData[player.Location].Name, player.Level, player.Exp, LevelsExp[player.Level], player.Cur_Mobility, player.Mobility, player.Reputation, player.Coin, player.Cur_HP, player.Max_HP, player.Cur_Burden, player.Max_Burden, player.Cur_Resistance, player.Attack, player.Defense, player.Stamina, player.Agility, player.Wisdom, player.NoDistribution)
 			//logger.Debugln(s_ReturnContent)
+		//当前
 		case strings.HasPrefix(content, commandPrefix[1]):
-
+			s_ReturnContent = ShowMapInfo(player)
 		//前往
 		case strings.HasPrefix(content, commandPrefix[2]):
 			//str_AimMap := strings.TrimPrefix(content, commandPrefix[2])
@@ -794,6 +795,8 @@ func PlayerUseProp(player *model.WechatPlayer, propName string) (s string) {
 		case model.PropType_角色昵称更改:
 			player.Flag = flag_用户传入角色名申请更名操作
 			s = textTemplate["100029"]
+		case model.PropType_角色确认洗点:
+			s = PlayerRedistributeAttribute(player)
 		default:
 			s = textTemplate["100010"]
 		}
@@ -1041,4 +1044,12 @@ func AddReplyPrefix(origin string, add string) (s string) {
 //清除玩家前置提醒
 func PlayerClearReplyPrefix(player *model.WechatPlayer) {
 	player.ReplyPreifixStr = ""
+}
+
+//显示玩家所处当前地图的信息
+func ShowMapInfo(player *model.WechatPlayer) (s string) {
+
+	s = fmt.Sprintf(textTemplate["200008"], Map_MapData[player.Location].Name, Map_MapData[player.Location].MapDescript)
+
+	return s
 }

@@ -15,6 +15,7 @@ func init() {
 	Map_PropsData[3] = model.NewWechatProp(3, "结实黄泥", "一级素材，可以卖给商人。", 10, 15, model.PropType_没有任何作用, 0)
 	Map_PropsData[4] = model.NewWechatProp(4, "清魂酒", "使用能够回复行动力20点。", 100, 150, model.PropType_恢复行动力, 20)
 	Map_PropsData[5] = model.NewWechatProp(5, "隐世符", "重新角色命名。", 888, 1000, model.PropType_角色昵称更改, 0)
+	Map_PropsData[6] = model.NewWechatProp(6, "遗忘契约", "传说中遗忘河的河水，使用后可以脱胎换骨，重新分配属性点。", 1000, 1500, model.PropType_角色确认洗点, 0)
 	//logger.Debugln(map_MapData["2"])
 }
 
